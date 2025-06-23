@@ -33,13 +33,13 @@ const tools = [
         features: ['Size Reduction', 'Quality Control', 'Multiple Formats']
     },
     {
-        id: 'format-converter',
-        title: 'Format Converter',
-        description: 'Convert between various document and image formats.',
+        id: 'image-converter',
+        title: 'Image Format Converter',
+        description: 'Convert between common image formats. Supports PNG, JPG, WebP, BMP, and GIF as input, and can convert to PNG, JPG, WebP, or ICO.',
         icon: Update,
-        path: '/format-converter',
+        path: '/image-converter',
         status: 'coming-soon',
-        features: ['Multiple Formats', 'Batch Processing', 'Preview']
+        features: ['PNG', 'JPG', 'WebP', 'GIF']
     },
     {
         id: 'password-generator',
