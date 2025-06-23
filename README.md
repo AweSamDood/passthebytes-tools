@@ -53,9 +53,9 @@ cp .env.example .env
 docker-compose up --build -d
 ```
 
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:8000](http://localhost:8000)
-- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Frontend**: [http://localhost:3030](http://localhost:3030)
+- **Backend API**: [http://localhost:8008](http://localhost:8008)
+- **API Docs**: [http://localhost:8008/docs](http://localhost:8008/docs)
 
 ### Production Deployment
 
@@ -70,18 +70,26 @@ The `deployment/deploy.sh` script is designed to automate production deployment 
     - Create a `.env` file and set `NGINX_DEPLOY_SCRIPT_PATH` to the absolute path of your NGINX deployment script.
 
 3.  **Run the deployment script**:
-    ```bash
-    sudo ./deployment/deploy.sh production
-    ```
 
-This script will:
-- Build and deploy the production Docker containers.
-- Execute your NGINX script to configure the site and obtain SSL certificates.
-- Make the tools available at your configured domain.
+    - **For regular code updates (most common case):**
+      ```bash
+      sudo ./deployment/deploy.sh production
+      ```
+      This will rebuild and restart the Docker containers without touching the NGINX configuration.
+
+    - **To run the NGINX and SSL setup for the first time or to reconfigure it:**
+      ```bash
+      sudo ./deployment/deploy.sh -r production
+      ```
+
+    - **To force an overwrite of an existing NGINX configuration:**
+      ```bash
+      sudo ./deployment/deploy.sh -f -r production
+      ```
 
 ## API Documentation
 
-Interactive API documentation is available via Swagger UI. Once the backend is running, navigate to [/docs](http://localhost:8000/docs) on the backend's URL.
+Interactive API documentation is available via Swagger UI. Once the backend is running, navigate to `/docs` on the backend's URL. For development, this is [http://localhost:8008/docs](http://localhost:8008/docs).
 
 ## Contributing
 
