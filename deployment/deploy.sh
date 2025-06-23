@@ -49,7 +49,7 @@ if [ "$ENVIRONMENT" = "production" ]; then
   # Setup NGINX configuration using existing script
   if [ -n "$NGINX_DEPLOY_SCRIPT_PATH" ] && [ -f "$NGINX_DEPLOY_SCRIPT_PATH" ]; then
     echo "Setting up NGINX configuration using script from NGINX_DEPLOY_SCRIPT_PATH..."
-    bash "$NGINX_DEPLOY_SCRIPT_PATH" tools 3000
+    bash "$NGINX_DEPLOY_SCRIPT_PATH" tools 3031
   else
     echo "NGINX_DEPLOY_SCRIPT_PATH is not set or the script was not found."
     echo "Please set NGINX_DEPLOY_SCRIPT_PATH in your .env file."
