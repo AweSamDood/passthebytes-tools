@@ -1,0 +1,33 @@
+# docker-compose.yml (Development)
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: DockerFile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    env_file:
+      - ./.env
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: DockerFile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    env_file:
+      - ./.env
+    restart: unless-stopped
+
+volumes:
+  backend_uploads:

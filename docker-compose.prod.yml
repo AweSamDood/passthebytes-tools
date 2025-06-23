@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: DockerFile
+    expose:
+      - "8000"
+    volumes:
+      - backend_uploads:/app/uploads
+    env_file:
+      - ./.env
+    environment:
+      - ENVIRONMENT=production
+    restart: unless-stopped
+    networks:
+      - tools-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: DockerFile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    env_file:
+      - ./.env
+    restart: unless-stopped
+    networks:
+      - tools-network
+
+volumes:
+  backend_uploads:
+
+networks:
+  tools-network:
+    driver: bridge
