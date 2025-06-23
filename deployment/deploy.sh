@@ -66,9 +66,9 @@ else
   docker-compose -p $PROJECT_NAME up --build -d
 
   echo "Development environment started:"
-  echo "Frontend: http://localhost:3000"
-  echo "Backend API: http://localhost:8000"
-  echo "API Documentation: http://localhost:8000/docs"
+  echo "Frontend: http://localhost:3030"
+  echo "Backend API: http://localhost:8008"
+  echo "API Documentation: http://localhost:8008/docs"
 fi
 
 # Wait for services to be ready
@@ -77,16 +77,38 @@ sleep 10
 
 # Health check
 echo "Performing health check..."
-if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-  echo "✅ Backend is healthy"
-else
-  echo "❌ Backend health check failed"
-fi
 
-if curl -f http://localhost:3000 > /dev/null 2>&1; then
-  echo "✅ Frontend is accessible"
+if [ "$ENVIRONMENT" = "production" ]; then
+  # In production, we check the services via the exposed frontend port
+  # Backend check goes through the frontend's NGINX proxy to http://backend:8000/health
+  if curl -fsS http://localhost:3031/api/health > /dev/null; then
+    echo "✅ Backend is healthy"
+  else
+    echo "❌ Backend health check failed. This is likely the cause of 502 errors."
+    echo "Dumping latest backend logs for inspection:"
+    docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 backend
+  fi
+
+  if curl -fsS http://localhost:3031 > /dev/null; then
+    echo "✅ Frontend is accessible"
+  else
+    echo "❌ Frontend health check failed"
+    echo "Dumping latest frontend logs for inspection:"
+    docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 frontend
+  fi
 else
-  echo "❌ Frontend health check failed"
+  # In development, we check the mapped localhost ports
+  if curl -fsS http://localhost:8008/health > /dev/null; then
+    echo "✅ Backend is healthy"
+  else
+    echo "❌ Backend health check failed"
+  fi
+
+  if curl -fsS http://localhost:3030 > /dev/null; then
+    echo "✅ Frontend is accessible"
+  else
+    echo "❌ Frontend health check failed"
+  fi
 fi
 
 echo "Deployment completed!"
@@ -94,5 +116,5 @@ echo "Deployment completed!"
 if [ "$ENVIRONMENT" = "production" ]; then
   echo "Tools are now available at: https://tools.passthebytes.com"
 else
-  echo "Development server running at: http://localhost:3000"
+  echo "Development server running at: http://localhost:3030"
 fi
