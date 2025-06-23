@@ -38,8 +38,8 @@ const tools = [
         description: 'Convert between common image formats. Supports PNG, JPG, WebP, BMP, and GIF as input, and can convert to PNG, JPG, WebP, or ICO.',
         icon: Update,
         path: '/image-converter',
-        status: 'coming-soon',
-        features: ['PNG', 'JPG', 'WebP', 'GIF']
+        status: 'available',
+        features: ['PNG', 'JPG', 'WebP', 'ICO', 'GIF']
     },
     {
         id: 'password-generator',

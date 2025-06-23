@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from pathlib import Path
 
-from .routers import png_to_pdf
+from .routers import png_to_pdf, image_converter
 
 # Create FastAPI instance
 app = FastAPI(
@@ -29,6 +29,7 @@ uploads_dir.mkdir(exist_ok=True)
 
 # Include routers
 app.include_router(png_to_pdf.router, prefix="/api/png-to-pdf", tags=["PNG to PDF"])
+app.include_router(image_converter.router, prefix="/api/image-converter", tags=["Image Converter"])
 
 @app.get("/")
 async def root():

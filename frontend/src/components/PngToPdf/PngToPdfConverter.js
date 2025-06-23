@@ -7,14 +7,9 @@ import {
     Button,
     TextField,
     Slider,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     Alert,
     CircularProgress,
-    Chip,
-    Divider
+    Chip
 } from '@mui/material';
 import { CloudUpload, Download, Clear, Reorder } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -148,7 +143,12 @@ function PngToPdfConverter() {
                 <Typography variant="h6" gutterBottom>
                     1. Select Images
                 </Typography>
-                <FileUpload onFilesAdded={handleFilesAdded} />
+                <FileUpload
+                    onDrop={handleFilesAdded}
+                    accept={{ 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }}
+                    caption="Supported formats: PNG, JPG, JPEG (max 50MB each)"
+                    multiple={true}
+                />
 
                 {files.length > 0 && (
                     <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
