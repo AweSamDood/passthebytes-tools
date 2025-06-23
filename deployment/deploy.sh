@@ -101,7 +101,7 @@ echo "Performing health check..."
 if [ "$ENVIRONMENT" = "production" ]; then
   # In production, we check the services via the exposed frontend port
   # Backend check goes through the frontend's NGINX proxy to http://backend:8000/health
-  if curl -fsS http://localhost:3031/api/health > /dev/null; then
+  if curl -fsS http://localhost:3031/health > /dev/null; then
     echo "✅ Backend is healthy"
   else
     echo "❌ Backend health check failed. This is likely the cause of 502 errors."
