@@ -10,7 +10,7 @@ import {
     Box,
     Chip
 } from '@mui/material';
-import { PictureAsPdf, Update } from '@mui/icons-material';
+import { PictureAsPdf, Update, VpnKey, DocumentScanner, YouTube } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const tools = [
@@ -40,6 +40,33 @@ const tools = [
         path: '/format-converter',
         status: 'coming-soon',
         features: ['Multiple Formats', 'Batch Processing', 'Preview']
+    },
+    {
+        id: 'password-generator',
+        title: 'Password Generator',
+        description: 'Create strong, random passwords with customizable rules.',
+        icon: VpnKey,
+        path: '/password-generator',
+        status: 'coming-soon',
+        features: ['Custom Length', 'Character Types', 'Secure']
+    },
+    {
+        id: 'text-from-image',
+        title: 'Text from Image (OCR)',
+        description: 'Extract text from images using Optical Character Recognition.',
+        icon: DocumentScanner,
+        path: '/text-from-image',
+        status: 'coming-soon',
+        features: ['Supports Various Formats', 'High Accuracy', 'Copy to Clipboard']
+    },
+    {
+        id: 'youtube-downloader',
+        title: 'YouTube Downloader',
+        description: 'Download YouTube videos as MP3 or MP4 files.',
+        icon: YouTube,
+        path: '/youtube-downloader',
+        status: 'coming-soon',
+        features: ['MP3 Audio', 'MP4 Video', 'Multiple Resolutions']
     }
 ];
 
