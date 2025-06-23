@@ -1,6 +1,6 @@
 # PassTheBytes Tools
 
-A collection of useful web-based tools for file conversion and processing, containerized with Docker for easy deployment. The full source code is available on [GitHub](https://github.com/AweSamDood/passthebytes-tools).
+A collection of useful web-based tools for file conversion and processing, containerized with Docker for easy deployment.
 
 ## Your Privacy is Our Priority
 
@@ -9,7 +9,7 @@ We are deeply committed to protecting your privacy. This service is designed wit
 -   **We collect absolutely no data.** No logs, no analytics, no tracking. Your activity is your own.
 -   **All uploaded files are temporary and instantly deleted.** Files are held in memory only for the duration of the processing task. The moment the task is complete (or fails), the file is permanently erased from the server.
 -   **No user accounts are required.** You can use all tools anonymously without signing up.
--   **The code is fully open-source.** You can inspect the code on [GitHub](https://github.com/AweSamDood/passthebytes-tools) to verify our privacy claims for yourself.
+-   **The code is fully open-source.** You can inspect the code to verify our privacy claims for yourself.
 
 We believe that you have the right to use online tools without compromising your privacy.
 
@@ -23,9 +23,14 @@ We believe that you have the right to use online tools without compromising your
 - **Batch Processing**: Convert up to 50 images at once.
 - **High-Quality Output**: Uses `ocrmypdf` for professional results without performing OCR.
 
+### Image Format Converter
+- **Multiple File Upload**: Convert multiple images at once.
+- **Multiple Formats**: Supports conversion between PNG, JPEG, WEBP, and ICO.
+- **Batch Processing**: Handles multiple files and provides a ZIP archive for download.
+- **Transparency Handling**: Correctly handles transparent backgrounds when converting to formats like JPEG.
+
 ### Coming Soon
 - Image Optimizer
-- Format Converter
 - Password Generator
 - Text from Image Extractor (OCR)
 - YouTube to MP3/MP4 Downloader
