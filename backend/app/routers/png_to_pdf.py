@@ -70,6 +70,7 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
                     "--image-dpi", str(dpi),
                     "--output-type", "pdf",
                     "--skip-text",  # Don't perform OCR, just convert
+                    "--optimize", "0",  # Disable optimization to avoid Ghostscript issues
                     image_path,
                     temp_pdf
                 ]
