@@ -244,14 +244,6 @@ jobs:
                 timeout: 3s
                 retries: 10
                 start_period: 40s
-            frontend:
-              image: ghcr.io/${{ steps.repo.outputs.name }}/frontend:sha-${GITHUB_SHA::7}
-              healthcheck:
-                test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
-                interval: 5s
-                timeout: 3s
-                retries: 10
-                start_period: 20s
           EOF
 
       - name: Create .env file for testing
@@ -277,8 +269,8 @@ jobs:
           # Wait for health checks to pass with more robust checking
           echo "Waiting for services to be healthy..."
           for i in {1..60}; do
-            BACKEND_HEALTH=$(docker compose ps backend --format json | jq -r '.[0].Health')
-            FRONTEND_HEALTH=$(docker compose ps frontend --format json | jq -r '.[0].Health')
+            BACKEND_HEALTH=$(docker compose ps backend --format json | jq -r '.Health')
+            FRONTEND_HEALTH=$(docker compose ps frontend --format json | jq -r '.Health')
           
             if [[ "$BACKEND_HEALTH" == "healthy" && "$FRONTEND_HEALTH" == "healthy" ]]; then
               echo "✅ All services are healthy!"
