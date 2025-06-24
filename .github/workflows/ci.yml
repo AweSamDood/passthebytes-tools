@@ -244,6 +244,9 @@ jobs:
                 timeout: 3s
                 retries: 10
                 start_period: 40s
+              volumes: []
+            frontend:
+              image: ghcr.io/${{ steps.repo.outputs.name }}/frontend:sha-${GITHUB_SHA::7}
           EOF
 
       - name: Create .env file for testing
