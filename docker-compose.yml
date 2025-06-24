@@ -5,7 +5,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: backend/Dockerfile
     ports:
       - "8008:8000"
     volumes:
@@ -20,7 +20,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: DockerFile
+      dockerfile: frontend/Dockerfile
     ports:
       - "3030:80"
     depends_on:
