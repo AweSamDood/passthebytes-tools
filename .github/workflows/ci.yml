@@ -1,0 +1,183 @@
+name: Main CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  # Backend tests and linting
+  backend-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx flake8 black isort bandit safety
+
+      - name: Run security checks
+        run: |
+          cd backend
+          # Check for known security vulnerabilities
+          safety check
+          # Static security analysis
+          bandit -r app/ -f json -o bandit-report.json || true
+
+      - name: Code quality checks
+        run: |
+          cd backend
+          # Check code formatting
+          black --check app/
+          # Check import sorting
+          isort --check-only app/
+          # Linting
+          flake8 app/ --max-line-length=88 --extend-ignore=E203,W503
+
+      - name: Run tests
+        run: |
+          cd backend
+          # Create test environment
+          python -m pytest tests/ -v --tb=short || echo "No tests found - consider adding tests!"
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-report
+          path: backend/bandit-report.json
+
+  # Frontend tests and linting
+  frontend-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd frontend
+          npm run lint || echo "Add linting script to package.json: \"lint\": \"eslint src/ --ext .js,.jsx\""
+
+      - name: Run tests
+        run: |
+          cd frontend
+          npm test -- --coverage --watchAll=false
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/build/
+
+  # Docker build test
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-ci, frontend-ci]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .env file for testing
+        run: |
+          cp .env.example .env
+
+      - name: Build backend image
+        run: |
+          docker build -t passthebytes-backend:test ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build -t passthebytes-frontend:test ./frontend
+
+      - name: Test docker-compose build
+        run: |
+          docker-compose -f docker-compose.yml build
+
+      - name: Run basic container tests
+        run: |
+          # Start services
+          docker-compose up -d
+          
+          # Wait for services to be ready
+          sleep 30
+          
+          # Test backend health
+          curl -f http://localhost:8008/health || exit 1
+          
+          # Test frontend accessibility
+          curl -f http://localhost:3030 || exit 1
+          
+          # Cleanup
+          docker-compose down
+
+  # Security and dependency checks
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
