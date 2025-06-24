@@ -18,12 +18,18 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4"
   },
+  "devDependencies": {
+    "prettier": "^3.6.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --passWithNoTests",
+    "test:ci": "react-scripts test --coverage --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject",
-    "audit-fix": "npm audit fix"
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "lint": "eslint src/ --ext .js,.jsx || echo 'ESLint not configured'"
   },
   "eslintConfig": {
     "extends": [

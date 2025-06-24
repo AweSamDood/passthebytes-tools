@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
-from fastapi.responses import StreamingResponse
-from PIL import Image
 import io
+import os
 import zipfile
 from typing import List
-import os
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from PIL import Image
 
 router = APIRouter()
 
@@ -23,18 +24,24 @@ SUPPORTED_OUTPUT_FORMATS = {
     "ico": "ICO",
 }
 
+
 @router.post("/convert-image")
-async def convert_image(files: List[UploadFile] = File(...), output_format: str = Form(...)):
+async def convert_image(
+    files: List[UploadFile] = File(...), output_format: str = Form(...)
+):
     output_format = output_format.lower()
     if output_format not in SUPPORTED_OUTPUT_FORMATS:
-        raise HTTPException(status_code=400, detail=f"Unsupported output format. Supported formats are: {list(SUPPORTED_OUTPUT_FORMATS.keys())}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported output format. Supported formats are: {list(SUPPORTED_OUTPUT_FORMATS.keys())}",
+        )
 
     # Validate all files before processing
     for file in files:
         if file.content_type not in SUPPORTED_INPUT_FORMATS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported input file format: {file.filename}. Supported formats are: {list(SUPPORTED_INPUT_FORMATS.keys())}"
+                detail=f"Unsupported input file format: {file.filename}. Supported formats are: {list(SUPPORTED_INPUT_FORMATS.keys())}",
             )
 
     converted_files = []
@@ -43,11 +50,11 @@ async def convert_image(files: List[UploadFile] = File(...), output_format: str 
             image_data = await file.read()
             image = Image.open(io.BytesIO(image_data))
 
-            if output_format == 'jpeg' and image.mode in ( 'RGBA', 'P', 'LA'):
-                if image.mode != 'RGBA':
-                    image = image.convert('RGBA')
+            if output_format == "jpeg" and image.mode in ("RGBA", "P", "LA"):
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
 
-                background = Image.new('RGB', image.size, (255, 255, 255))
+                background = Image.new("RGB", image.size, (255, 255, 255))
                 background.paste(image, (0, 0), image)
                 image = background
             elif output_format == "ico" and image.mode in ("RGBA", "P"):
@@ -60,24 +67,26 @@ async def convert_image(files: List[UploadFile] = File(...), output_format: str 
             base_filename, _ = os.path.splitext(file.filename)
             new_filename = f"{base_filename}.{output_format}"
 
-            converted_files.append({
-                "filename": new_filename,
-                "data": output_io
-            })
+            converted_files.append({"filename": new_filename, "data": output_io})
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"An error occurred during conversion of {file.filename}: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"An error occurred during conversion of {file.filename}: {str(e)}",
+            )
 
     # If only one file was processed, return it directly
     if len(converted_files) == 1:
         single_file = converted_files[0]
         media_type = f"image/{output_format}"
-        if output_format == 'ico':
-            media_type = 'image/x-icon'
+        if output_format == "ico":
+            media_type = "image/x-icon"
 
         return StreamingResponse(
             single_file["data"],
             media_type=media_type,
-            headers={"Content-Disposition": f"attachment; filename={single_file['filename']}"}
+            headers={
+                "Content-Disposition": f"attachment; filename={single_file['filename']}"
+            },
         )
 
     # If multiple files were processed, return a zip archive
@@ -91,5 +100,5 @@ async def convert_image(files: List[UploadFile] = File(...), output_format: str 
     return StreamingResponse(
         zip_io,
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=converted_images.zip"}
+        headers={"Content-Disposition": "attachment; filename=converted_images.zip"},
     )

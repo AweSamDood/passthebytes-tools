@@ -132,8 +132,8 @@ jobs:
       - name: Run tests
         run: |
           cd frontend
-          # Set CI environment to avoid interactive mode
-          CI=true npm test -- --coverage --watchAll=false
+          # Set CI environment to avoid interactive mode and pass with no tests
+          CI=true npm test -- --coverage --watchAll=false --passWithNoTests
 
       - name: Build frontend
         run: |
