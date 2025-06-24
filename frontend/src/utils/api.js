@@ -35,3 +35,28 @@ export const getConversionInfo = async () => {
         throw error;
     }
 };
+
+export const convertImage = async (files, outputFormat) => {
+    const formData = new FormData();
+    files.forEach(file => {
+        formData.append('files', file);
+    });
+    formData.append('output_format', outputFormat);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/image-converter/convert-image`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        return response;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+};

@@ -1,11 +1,10 @@
 # docker-compose.yml (Development)
-version: '3.8'
 
 services:
   backend:
     build:
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     ports:
       - "8008:8000"
     volumes:
@@ -20,7 +19,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     ports:
       - "3030:80"
     depends_on:

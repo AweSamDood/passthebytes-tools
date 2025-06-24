@@ -1,16 +1,17 @@
 # app/routers/png_to_pdf.py
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
-from fastapi.responses import FileResponse
-from starlette.background import BackgroundTask
-from typing import List
-import os
-import uuid
-import tempfile
-import subprocess
-from pathlib import Path
-import shutil
-from PIL import Image
 import logging
+import os
+import shutil
+import subprocess
+import tempfile
+import uuid
+from pathlib import Path
+from typing import List
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from PIL import Image
+from starlette.background import BackgroundTask
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,8 +19,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg'}
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+
 
 def validate_image_file(file: UploadFile) -> bool:
     """Validate uploaded file is a valid image"""
@@ -29,10 +31,13 @@ def validate_image_file(file: UploadFile) -> bool:
     file_ext = Path(file.filename).suffix.lower()
     return file_ext in ALLOWED_EXTENSIONS
 
+
 def save_uploaded_file(file: UploadFile, temp_dir: str) -> str:
     """Save uploaded file to temporary directory"""
     if not validate_image_file(file):
-        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS}"
+        )
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix.lower()
@@ -49,11 +54,16 @@ def save_uploaded_file(file: UploadFile, temp_dir: str) -> str:
             img.verify()
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid image file; verification error: {e}"
+        )
 
     return file_path
 
-def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 300) -> str:
+
+def convert_images_to_pdf(
+    image_paths: List[str], output_path: str, dpi: int = 300
+) -> str:
     """Convert list of images to PDF using ocrmypdf"""
     try:
         # Create a temporary directory for intermediate files
@@ -67,18 +77,24 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
                 # Use ocrmypdf to convert image to PDF with specified DPI
                 cmd = [
                     "ocrmypdf",
-                    "--image-dpi", str(dpi),
-                    "--output-type", "pdf",
+                    "--image-dpi",
+                    str(dpi),
+                    "--output-type",
+                    "pdf",
                     "--skip-text",  # Don't perform OCR, just convert
+                    "--optimize",
+                    "0",  # Disable optimization to avoid Ghostscript issues
                     image_path,
-                    temp_pdf
+                    temp_pdf,
                 ]
 
                 result = subprocess.run(cmd, capture_output=True, text=True)
 
                 if result.returncode != 0:
                     logger.error(f"ocrmypdf failed for {image_path}: {result.stderr}")
-                    raise HTTPException(status_code=500, detail=f"Conversion failed: {result.stderr}")
+                    raise HTTPException(
+                        status_code=500, detail=f"Conversion failed: {result.stderr}"
+                    )
 
                 pdf_files.append(temp_pdf)
 
@@ -86,7 +102,7 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
             if len(pdf_files) == 1:
                 shutil.copy(pdf_files[0], output_path)
             else:
-                # Use PyPDF2 or similar to merge PDFs
+                # Use pypdf to merge PDFs
                 merge_pdfs(pdf_files, output_path)
 
             return output_path
@@ -98,18 +114,19 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
         logger.error(f"Conversion error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def merge_pdfs(pdf_files: List[str], output_path: str):
-    """Merge multiple PDF files into one"""
-    try:
-        from PyPDF2 import PdfMerger
 
-        merger = PdfMerger()
+def merge_pdfs(pdf_files: List[str], output_path: str):
+    """Merge multiple PDF files into one using pypdf"""
+    try:
+        from pypdf import PdfWriter
+
+        writer = PdfWriter()
 
         for pdf_file in pdf_files:
-            merger.append(pdf_file)
+            writer.append(pdf_file)
 
-        merger.write(output_path)
-        merger.close()
+        with open(output_path, "wb") as output_file:
+            writer.write(output_file)
 
     except ImportError:
         # Fallback to using pdftk or similar command-line tool
@@ -119,11 +136,12 @@ def merge_pdfs(pdf_files: List[str], output_path: str):
         if result.returncode != 0:
             raise HTTPException(status_code=500, detail="PDF merging failed")
 
+
 @router.post("/convert")
 async def convert_png_to_pdf(
-        files: List[UploadFile] = File(...),
-        dpi: int = Form(300),
-        filename: str = Form("converted_document")
+    files: List[UploadFile] = File(...),
+    dpi: int = Form(300),
+    filename: str = Form("converted_document"),
 ):
     """Convert multiple PNG/JPG files to a single PDF"""
 
@@ -137,7 +155,8 @@ async def convert_png_to_pdf(
     if not 72 <= dpi <= 600:
         raise HTTPException(status_code=400, detail="DPI must be between 72 and 600")
 
-    # Create temporary directory for this conversion, which will be cleaned up by a background task
+    # Create temporary directory for this conversion,
+    # which will be cleaned up by a background task
     temp_dir = tempfile.mkdtemp()
 
     try:
@@ -145,13 +164,17 @@ async def convert_png_to_pdf(
         image_paths = []
         for file in files:
             if file.size and file.size > MAX_FILE_SIZE:
-                raise HTTPException(status_code=400, detail=f"File {file.filename} is too large")
+                raise HTTPException(
+                    status_code=400, detail=f"File {file.filename} is too large"
+                )
 
             file_path = save_uploaded_file(file, temp_dir)
             image_paths.append(file_path)
 
         # Generate output filename
-        output_filename = f"{filename}.pdf" if not filename.endswith('.pdf') else filename
+        output_filename = (
+            f"{filename}.pdf" if not filename.endswith(".pdf") else filename
+        )
         output_path = os.path.join(temp_dir, output_filename)
 
         # Convert to PDF
@@ -162,16 +185,18 @@ async def convert_png_to_pdf(
             path=output_path,
             filename=output_filename,
             media_type="application/pdf",
-            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True)
+            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True),
         )
 
     except Exception as e:
-        # If any exception occurs, ensure the temp directory is cleaned up before raising
+        # If any exception occurs,
+        # ensure the temp directory is cleaned up before raising
         shutil.rmtree(temp_dir, ignore_errors=True)
         if isinstance(e, HTTPException):
             raise
         logger.error(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/info")
 async def get_conversion_info():
@@ -181,5 +206,5 @@ async def get_conversion_info():
         "supported_formats": list(ALLOWED_EXTENSIONS),
         "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024),
         "max_files": 50,
-        "dpi_range": {"min": 72, "max": 600, "default": 300}
+        "dpi_range": {"min": 72, "max": 600, "default": 300},
     }

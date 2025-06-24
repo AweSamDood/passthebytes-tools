@@ -12,14 +12,14 @@ RUN npm install --omit=dev
 # Copy source code
 COPY . .
 
-# Move public directory to where react-scripts expects it
-RUN mv src/public ./public
-
 # Build the app
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine
+
+# Install curl
+RUN apk --no-cache add curl
 
 # Copy build files
 COPY --from=build /app/build /usr/share/nginx/html

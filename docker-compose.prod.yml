@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     expose:
       - "8000"
     volumes:
@@ -20,7 +18,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     ports:
       - "3031:80"
     depends_on:

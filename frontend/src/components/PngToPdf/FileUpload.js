@@ -1,30 +1,15 @@
-
 // src/components/PngToPdf/FileUpload.js
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Box, Typography, Button } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
 
-function FileUpload({ onFilesAdded }) {
-    const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
-        if (rejectedFiles.length > 0) {
-            console.warn('Some files were rejected:', rejectedFiles);
-        }
-
-        if (acceptedFiles.length > 0) {
-            onFilesAdded(acceptedFiles);
-        }
-    }, [onFilesAdded]);
-
+function FileUpload({ onDrop, accept, multiple = true, caption }) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: {
-            'image/png': ['.png'],
-            'image/jpeg': ['.jpg', '.jpeg'],
-            'image/jpg': ['.jpg']
-        },
-        multiple: true,
-        maxSize: 50 * 1024 * 1024 // 50MB
+        accept,
+        multiple,
+        maxSize: 50 * 1024 * 1024, // 50MB
     });
 
     return (
@@ -67,7 +52,7 @@ function FileUpload({ onFilesAdded }) {
             )}
 
             <Typography variant="caption" display="block" sx={{ mt: 2 }}>
-                Supported formats: PNG, JPG, JPEG (max 50MB each)
+                {caption || 'No file restrictions.'}
             </Typography>
         </Box>
     );

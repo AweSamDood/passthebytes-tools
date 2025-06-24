@@ -8,6 +8,7 @@ import { Container, Box, Typography, Paper, Link } from '@mui/material';
 import Header from './components/Header';
 import ToolsGrid from './components/ToolsGrid';
 import PngToPdfConverter from './components/PngToPdf/PngToPdfConverter';
+import ImageConverter from './components/ImageConverter/ImageConverter';
 import Footer from './components/Footer';
 
 // Create a custom theme
@@ -53,6 +54,7 @@ function App() {
                         <Routes>
                             <Route path="/" element={<ToolsGrid />} />
                             <Route path="/png-to-pdf" element={<PngToPdfConverter />} />
+                            <Route path="/image-converter" element={<ImageConverter />} />
                         </Routes>
                     </Container>
                     <Footer />

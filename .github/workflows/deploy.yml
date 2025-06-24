@@ -1,0 +1,154 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual deployment
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: production
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify project directory exists
+        run: |
+          PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
+          if [ ! -d "$PROJECT_PATH" ]; then
+            echo "❌ Project directory does not exist: $PROJECT_PATH"
+            exit 1
+          fi
+          echo "✅ Project directory verified: $PROJECT_PATH"
+
+      - name: Create backup and sync code
+        run: |
+          PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
+          cd "$PROJECT_PATH"
+          
+          # Verify we're in the right directory
+          if [ ! -f "deployment/deploy.sh" ]; then
+            echo "❌ Error: Not in the correct project directory"
+            echo "Expected to find deployment/deploy.sh in: $(pwd)"
+            ls -la
+            exit 1
+          fi
+          
+          echo "📁 Current working directory: $(pwd)"
+          echo "📦 Syncing code from GitHub Actions workspace..."
+          
+          # Create a backup of current state before syncing
+          if [ -d ".git" ]; then
+            echo "📋 Current commit: $(git rev-parse HEAD)"
+          fi
+          
+          # Sync the checked-out code (preserve .git and other important files)
+          rsync -av \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='backend/uploads/' \
+            --exclude='deployments/' \
+            "$GITHUB_WORKSPACE/" ./
+          
+          echo "✅ Code synced successfully"
+
+      - name: Run deployment script
+        run: |
+          PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
+          cd "$PROJECT_PATH"
+          
+          echo "🚀 Starting deployment..."
+          
+          # Make sure deploy script is executable
+          chmod +x deployment/deploy.sh
+          
+          # Run deployment script
+          sudo ./deployment/deploy.sh production
+
+      - name: Verify deployment health
+        run: |
+          echo "⏳ Waiting for services to stabilize..."
+          sleep 15
+          
+          echo "🔍 Running health checks..."
+          
+          # Check backend health
+          if curl -f http://localhost:3031/health > /dev/null 2>&1; then
+            echo "✅ Backend health check passed"
+          else
+            echo "❌ Backend health check failed"
+            exit 1
+          fi
+          
+          # Check frontend accessibility
+          if curl -f http://localhost:3031 > /dev/null 2>&1; then
+            echo "✅ Frontend accessibility check passed"
+          else
+            echo "❌ Frontend accessibility check failed"
+            exit 1
+          fi
+          
+          echo "🎉 Deployment completed successfully!"
+
+      - name: Log deployment info
+        if: always()
+        run: |
+          PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
+          cd "$PROJECT_PATH"
+          
+          # Create deployments directory if it doesn't exist
+          mkdir -p deployments
+          
+          # Log deployment status
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ Deployment successful (commit: ${{ github.sha }})" >> deployments/deployment.log
+          else
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ❌ Deployment failed (commit: ${{ github.sha }})" >> deployments/deployment.log
+          fi
+
+  # Post-deployment tests
+  post-deploy-tests:
+    runs-on: self-hosted
+    needs: deploy
+    if: success()
+
+    steps:
+      - name: Run comprehensive health checks
+        run: |
+          echo "🧪 Running post-deployment tests..."
+          
+          # Test main application
+          echo "Testing main application..."
+          curl -f http://localhost:3031/health || exit 1
+          
+          # Test API endpoints
+          echo "Testing API endpoints..."
+          curl -f http://localhost:3031/api/png-to-pdf/info || exit 1
+          
+          # Test that we can reach the frontend
+          echo "Testing frontend..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3031)
+          if [ "$response" != "200" ]; then
+            echo "❌ Frontend returned HTTP $response"
+            exit 1
+          fi
+          
+          echo "✅ All post-deployment tests passed!"
+
+      - name: Performance check
+        run: |
+          echo "📊 Running basic performance check..."
+          
+          # Simple response time check
+          start_time=$(date +%s.%3N)
+          curl -s http://localhost:3031/health > /dev/null
+          end_time=$(date +%s.%3N)
+          
+          # Calculate response time (works without bc)
+          response_time=$(awk "BEGIN {printf \"%.3f\", $end_time - $start_time}")
+          echo "Response time: ${response_time}s"
+          
+          echo "✅ Performance check completed"
