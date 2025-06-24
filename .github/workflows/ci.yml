@@ -269,25 +269,40 @@ jobs:
           # Start services in detached mode
           docker compose up -d
           
-          # Wait for health checks to pass with more robust checking
-          echo "Waiting for services to be healthy..."
+          # Wait for backend health check to pass
+          echo "Waiting for backend to be healthy..."
           for i in {1..60}; do
-            BACKEND_HEALTH=$(docker compose ps backend --format json | jq -r '.Health')
-            FRONTEND_HEALTH=$(docker compose ps frontend --format json | jq -r '.Health')
-          
-            if [[ "$BACKEND_HEALTH" == "healthy" && "$FRONTEND_HEALTH" == "healthy" ]]; then
-              echo "✅ All services are healthy!"
+            BACKEND_HEALTH=$(docker compose ps backend --format json | jq -r '.Health' 2>/dev/null || echo "starting")
+            if [[ "$BACKEND_HEALTH" == "healthy" ]]; then
+              echo "✅ Backend is healthy!"
               break
             fi
-          
-            echo "Waiting... Backend: $BACKEND_HEALTH, Frontend: $FRONTEND_HEALTH (attempt $i/60)"
-          
+            echo "Waiting for backend... Status: $BACKEND_HEALTH (attempt $i/60)"
             if [ $i -eq 60 ]; then
-              echo "❌ Services failed to become healthy after 120 seconds"
+              echo "❌ Backend failed to become healthy after 120 seconds."
+              echo "Dumping backend logs for debugging:"
+              docker compose logs backend
               docker compose ps
               exit 1
             fi
-          
+            sleep 2
+          done
+
+          # Check frontend accessibility separately
+          echo "Checking frontend accessibility..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3030 > /dev/null; then
+              echo "✅ Frontend is accessible."
+              break
+            fi
+            echo "Waiting for frontend to be accessible... (attempt $i/30)"
+            if [ $i -eq 30 ]; then
+              echo "❌ Frontend failed to become accessible after 60 seconds."
+              echo "Dumping frontend logs for debugging:"
+              docker compose logs frontend
+              docker compose ps
+              exit 1
+            fi
             sleep 2
           done
           
