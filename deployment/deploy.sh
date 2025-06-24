@@ -34,11 +34,12 @@ PROJECT_NAME="passthebytes-tools"
 
 echo "Deploying PassTheBytes Tools in $ENVIRONMENT mode..."
 
-# Check if running as root for production deployment
-if [ "$ENVIRONMENT" = "production" ] && [ "$EUID" -ne 0 ]; then
-  echo "Please run as root for production deployment"
-  exit 1
-fi
+# The root check is removed to allow for more flexible execution environments,
+# like GitHub Actions runners where the user is in the docker group.
+# if [ "$ENVIRONMENT" = "production" ] && [ "$EUID" -ne 0 ]; then
+#   echo "Please run as root for production deployment"
+#   exit 1
+# fi
 
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
