@@ -25,10 +25,21 @@ SUPPORTED_OUTPUT_FORMATS = {
 }
 
 
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+
 @router.post("/convert-image")
 async def convert_image(
     files: List[UploadFile] = File(...), output_format: str = Form(...)
 ):
+    # Validate file size
+    for file in files:
+        file_size = len(await file.read())
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File {file.filename} exceeds the maximum size of {MAX_FILE_SIZE // (1024 * 1024)} MB."
+            )
+        await file.seek(0)  # Reset file pointer after reading
     output_format = output_format.lower()
     if output_format not in SUPPORTED_OUTPUT_FORMATS:
         raise HTTPException(
