@@ -3,5 +3,5 @@ uvicorn[standard]==0.32.1
 python-multipart==0.0.18
 Pillow==11.0.0
 pypdf==5.2.0
-ocrmypdf==16.7.2
+ocrmypdf==16.10.2
 python-dotenv==1.0.1
