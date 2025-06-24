@@ -55,7 +55,7 @@ def save_uploaded_file(file: UploadFile, temp_dir: str) -> str:
     except Exception as e:
         os.remove(file_path)
         raise HTTPException(
-            status_code=400, detail=f"Invalid image file, cannot verify + {e}"
+            status_code=400, detail=f"Invalid image file; verification error: {e}"
         )
 
     return file_path
