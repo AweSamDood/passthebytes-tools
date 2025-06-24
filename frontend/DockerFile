@@ -12,9 +12,6 @@ RUN npm install --omit=dev
 # Copy source code
 COPY . .
 
-# Move public directory to where react-scripts expects it
-RUN mv src/public ./public
-
 # Build the app
 RUN npm run build
 
