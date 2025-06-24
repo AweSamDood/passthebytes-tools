@@ -3,6 +3,7 @@ FROM python:3.11-slim
 
 # Install system dependencies for ocrmypdf
 RUN apt-get update && apt-get install -y \
+    curl \
     tesseract-ocr \
     tesseract-ocr-eng \
     img2pdf \
