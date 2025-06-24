@@ -1,5 +1,4 @@
 # docker-compose.yml (Development)
-version: '3.8'
 
 services:
   backend:
