@@ -89,12 +89,17 @@ jobs:
       - name: Run linting
         run: |
           cd frontend
-          npm run lint || echo "Add linting script to package.json: \"lint\": \"eslint src/ --ext .js,.jsx\""
+          # Add basic ESLint if not configured
+          if ! npm run lint 2>/dev/null; then
+            echo "No lint script found. Adding basic ESLint check..."
+            npx eslint src/ --ext .js,.jsx || echo "ESLint not configured - consider adding it"
+          fi
 
       - name: Run tests
         run: |
           cd frontend
-          npm test -- --coverage --watchAll=false
+          # Set CI environment to avoid interactive mode
+          CI=true npm test -- --coverage --watchAll=false
 
       - name: Build frontend
         run: |
@@ -121,7 +126,11 @@ jobs:
 
       - name: Create .env file for testing
         run: |
-          cp .env.example .env
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo "ENVIRONMENT=development" > .env
+          fi
 
       - name: Build backend image
         run: |
@@ -140,16 +149,45 @@ jobs:
           # Start services
           docker-compose up -d
           
-          # Wait for services to be ready
-          sleep 30
+          # Wait for services to be ready (increased timeout)
+          echo "Waiting for services to start..."
+          sleep 60
           
-          # Test backend health
-          curl -f http://localhost:8008/health || exit 1
+          # Test backend health with retries
+          for i in {1..5}; do
+            if curl -f http://localhost:8008/health; then
+              echo "✅ Backend health check passed"
+              break
+            else
+              echo "❌ Backend health check failed (attempt $i/5)"
+              if [ $i -eq 5 ]; then exit 1; fi
+              sleep 10
+            fi
+          done
           
-          # Test frontend accessibility
-          curl -f http://localhost:3030 || exit 1
-          
-          # Cleanup
+          # Test frontend accessibility with retries
+          for i in {1..5}; do
+            if curl -f http://localhost:3030; then
+              echo "✅ Frontend accessibility check passed"
+              break
+            else
+              echo "❌ Frontend accessibility check failed (attempt $i/5)"
+              if [ $i -eq 5 ]; then exit 1; fi
+              sleep 10
+            fi
+          done
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend Logs ==="
+          docker-compose logs backend
+          echo "=== Frontend Logs ==="
+          docker-compose logs frontend
+
+      - name: Cleanup
+        if: always()
+        run: |
           docker-compose down
 
   # Security and dependency checks
@@ -169,7 +207,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
