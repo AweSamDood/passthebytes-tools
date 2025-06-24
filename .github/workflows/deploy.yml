@@ -111,44 +111,16 @@ jobs:
 
   # Post-deployment tests
   post-deploy-tests:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: deploy
     if: success()
 
     steps:
-      - name: Run comprehensive health checks
-        run: |
-          echo "🧪 Running post-deployment tests..."
-          
-          # Test main application
-          echo "Testing main application..."
-          curl -f http://localhost:3031/health || exit 1
-          
-          # Test API endpoints
-          echo "Testing API endpoints..."
-          curl -f http://localhost:3031/api/png-to-pdf/info || exit 1
-          
-          # Test that we can reach the frontend
-          echo "Testing frontend..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3031)
-          if [ "$response" != "200" ]; then
-            echo "❌ Frontend returned HTTP $response"
-            exit 1
-          fi
-          
-          echo "✅ All post-deployment tests passed!"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Performance check
-        run: |
-          echo "📊 Running basic performance check..."
-          
-          # Simple response time check
-          start_time=$(date +%s.%3N)
-          curl -s http://localhost:3031/health > /dev/null
-          end_time=$(date +%s.%3N)
-          
-          # Calculate response time (works without bc)
-          response_time=$(awk "BEGIN {printf \"%.3f\", $end_time - $start_time}")
-          echo "Response time: ${response_time}s"
-          
-          echo "✅ Performance check completed"
+      - name: Make test script executable
+        run: chmod +x ./deployment/post-deploy-tests.sh
+
+      - name: Run post-deployment tests on live site
+        run: ./deployment/post-deploy-tests.sh https://tools.passthebytes.com
