@@ -19,13 +19,15 @@
     "web-vitals": "^4.2.4"
   },
   "devDependencies": {
-    "prettier": "^3.6.0"
+    "prettier": "^3.6.0",
+    "react-app-rewired": "^2.2.1",
+    "customize-cra": "^1.0.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --passWithNoTests",
-    "test:ci": "react-scripts test --coverage --watchAll=false --passWithNoTests",
+    "start": "cat src/components/Footer.js && react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test --passWithNoTests",
+    "test:ci": "react-app-rewired test --coverage --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
@@ -49,7 +51,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:8000",
+  "proxy": "http://backend:8000",
   "overrides": {
     "nth-check": "^2.1.1",
     "postcss": "^8.4.47",
