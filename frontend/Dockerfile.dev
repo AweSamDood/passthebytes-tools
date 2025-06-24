@@ -1,0 +1,20 @@
+# Frontend Dockerfile for Development
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install all dependencies (including devDependencies)
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the source code
+# This is done after npm install to leverage Docker cache
+COPY . .
+
+# Expose the port for the React development server
+EXPOSE 3000
+
+# Start the React development server
+CMD ["npm", "start"]
+
