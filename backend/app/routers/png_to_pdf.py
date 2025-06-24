@@ -54,7 +54,9 @@ def save_uploaded_file(file: UploadFile, temp_dir: str) -> str:
             img.verify()
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid image file, cannot verify + {e}"
+        )
 
     return file_path
 
@@ -153,7 +155,8 @@ async def convert_png_to_pdf(
     if not 72 <= dpi <= 600:
         raise HTTPException(status_code=400, detail="DPI must be between 72 and 600")
 
-    # Create temporary directory for this conversion, which will be cleaned up by a background task
+    # Create temporary directory for this conversion,
+    # which will be cleaned up by a background task
     temp_dir = tempfile.mkdtemp()
 
     try:
@@ -186,7 +189,8 @@ async def convert_png_to_pdf(
         )
 
     except Exception as e:
-        # If any exception occurs, ensure the temp directory is cleaned up before raising
+        # If any exception occurs,
+        # ensure the temp directory is cleaned up before raising
         shutil.rmtree(temp_dir, ignore_errors=True)
         if isinstance(e, HTTPException):
             raise

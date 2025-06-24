@@ -33,7 +33,8 @@ async def convert_image(
     if output_format not in SUPPORTED_OUTPUT_FORMATS:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported output format. Supported formats are: {list(SUPPORTED_OUTPUT_FORMATS.keys())}",
+            detail=f"Unsupported output format. Supported formats are: "
+            f"{list(SUPPORTED_OUTPUT_FORMATS.keys())}",
         )
 
     # Validate all files before processing
@@ -41,7 +42,8 @@ async def convert_image(
         if file.content_type not in SUPPORTED_INPUT_FORMATS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported input file format: {file.filename}. Supported formats are: {list(SUPPORTED_INPUT_FORMATS.keys())}",
+                detail=f"Unsupported input file format: {file.filename}."
+                f" Supported formats are: {list(SUPPORTED_INPUT_FORMATS.keys())}",
             )
 
     converted_files = []
@@ -71,7 +73,8 @@ async def convert_image(
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"An error occurred during conversion of {file.filename}: {str(e)}",
+                detail=f"An error occurred during conversion"
+                f" of {file.filename}: {str(e)}",
             )
 
     # If only one file was processed, return it directly
