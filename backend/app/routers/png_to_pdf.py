@@ -86,7 +86,7 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
             if len(pdf_files) == 1:
                 shutil.copy(pdf_files[0], output_path)
             else:
-                # Use PyPDF2 or similar to merge PDFs
+                # Use pypdf to merge PDFs
                 merge_pdfs(pdf_files, output_path)
 
             return output_path
@@ -99,17 +99,17 @@ def convert_images_to_pdf(image_paths: List[str], output_path: str, dpi: int = 3
         raise HTTPException(status_code=500, detail=str(e))
 
 def merge_pdfs(pdf_files: List[str], output_path: str):
-    """Merge multiple PDF files into one"""
+    """Merge multiple PDF files into one using pypdf"""
     try:
-        from PyPDF2 import PdfMerger
+        from pypdf import PdfWriter
 
-        merger = PdfMerger()
+        writer = PdfWriter()
 
         for pdf_file in pdf_files:
-            merger.append(pdf_file)
+            writer.append(pdf_file)
 
-        merger.write(output_path)
-        merger.close()
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
 
     except ImportError:
         # Fallback to using pdftk or similar command-line tool

@@ -1,7 +1,7 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-Pillow==10.1.0
-PyPDF2==3.0.1
-ocrmypdf==15.4.4
-python-dotenv==1.0.0
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.18
+Pillow==11.0.0
+pypdf==5.2.0
+ocrmypdf==16.7.2
+python-dotenv==1.0.1
