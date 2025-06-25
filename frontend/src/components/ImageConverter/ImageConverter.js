@@ -27,6 +27,7 @@ const outputFormats = [
     { value: 'jpeg', label: 'JPEG' },
     { value: 'webp', label: 'WebP' },
     { value: 'ico', label: 'ICO (Favicon)' },
+    { value: 'avif', label: 'AVIF' },
 ];
 
 function ImageConverter() {
@@ -112,9 +113,9 @@ function ImageConverter() {
                     <Grid item xs={12}>
                         <FileUpload
                             onDrop={handleFileDrop}
-                            accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'] }}
+                            accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.avif'] }}
                             multiple={true}
-                            caption="Supported formats: PNG, JPG, WebP, GIF, BMP (max 50MB)"
+                            caption="Supported formats: PNG, JPG, WebP, GIF, BMP, AVIF (max 50MB)"
                         />
                     </Grid>
 

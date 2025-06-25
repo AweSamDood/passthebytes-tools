@@ -5,3 +5,4 @@ Pillow==11.0.0
 pypdf==5.2.0
 ocrmypdf==16.10.2
 python-dotenv==1.0.1
+pillow-avif-plugin==1.4.2

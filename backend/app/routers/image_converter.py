@@ -3,6 +3,7 @@ import os
 import zipfile
 from typing import List
 
+import pillow_avif  # noqa: F401
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
@@ -15,6 +16,7 @@ SUPPORTED_INPUT_FORMATS = {
     "image/webp": "WEBP",
     "image/gif": "GIF",
     "image/bmp": "BMP",
+    "image/avif": "AVIF",
 }
 
 SUPPORTED_OUTPUT_FORMATS = {
@@ -22,6 +24,7 @@ SUPPORTED_OUTPUT_FORMATS = {
     "jpeg": "JPEG",
     "webp": "WEBP",
     "ico": "ICO",
+    "avif": "AVIF",
 }
 
 
