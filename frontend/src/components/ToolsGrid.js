@@ -47,7 +47,7 @@ const tools = [
         description: 'Create strong, random passwords with customizable rules.',
         icon: VpnKey,
         path: '/password-generator',
-        status: 'coming-soon',
+        status: 'available',
         features: ['Custom Length', 'Character Types', 'Secure']
     },
     {

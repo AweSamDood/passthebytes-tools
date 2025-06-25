@@ -60,3 +60,25 @@ export const convertImage = async (files, outputFormat) => {
         throw error;
     }
 };
+
+export const generatePassword = async (options) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/password-generator/generate-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(options),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+};

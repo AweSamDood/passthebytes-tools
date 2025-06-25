@@ -9,6 +9,7 @@ import Header from './components/Header';
 import ToolsGrid from './components/ToolsGrid';
 import PngToPdfConverter from './components/PngToPdf/PngToPdfConverter';
 import ImageConverter from './components/ImageConverter/ImageConverter';
+import PasswordGenerator from './components/PasswordGenerator/PasswordGenerator';
 import Footer from './components/Footer';
 
 // Create a custom theme
@@ -55,6 +56,7 @@ function App() {
                             <Route path="/" element={<ToolsGrid />} />
                             <Route path="/png-to-pdf" element={<PngToPdfConverter />} />
                             <Route path="/image-converter" element={<ImageConverter />} />
+                            <Route path="/password-generator" element={<PasswordGenerator />} />
                         </Routes>
                     </Container>
                     <Footer />
