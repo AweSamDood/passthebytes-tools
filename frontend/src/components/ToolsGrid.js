@@ -16,12 +16,12 @@ import { useNavigate } from 'react-router-dom';
 const tools = [
     {
         id: 'png-to-pdf',
-        title: 'PNG to PDF Converter',
-        description: 'Convert multiple PNG/JPG images to a single PDF with custom ordering and DPI settings.',
+        title: 'Images to PDF Converter',
+        description: 'Convert multiple PNG/JPG images to a single PDF with custom ordering and DPI settings. \n The output pdf has selectable text.',
         icon: PictureAsPdf,
         path: '/png-to-pdf',
         status: 'available',
-        features: ['Drag & Drop', 'Custom Order', 'High Quality', 'Batch Convert']
+        features: ['Custom Order', 'Custom DPI Quality']
     },
     {
         id: 'image-optimizer',
@@ -35,11 +35,11 @@ const tools = [
     {
         id: 'image-converter',
         title: 'Image Format Converter',
-        description: 'Convert between common image formats. Supports PNG, JPG, WebP, BMP, and GIF as input, and can convert to PNG, JPG, WebP, or ICO.',
+        description: 'Convert between common image formats.',
         icon: Update,
         path: '/image-converter',
         status: 'available',
-        features: ['PNG', 'JPG', 'WebP', 'ICO', 'GIF']
+        features: ['PNG', 'JPG', 'WebP', 'ICO', 'GIF','AVIF']
     },
     {
         id: 'password-generator',
