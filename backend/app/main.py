@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import image_converter, png_to_pdf
+from .routers import image_converter, password_generator, png_to_pdf
 
 # Create FastAPI instance
 app = FastAPI(
@@ -30,6 +30,11 @@ uploads_dir.mkdir(exist_ok=True)
 app.include_router(png_to_pdf.router, prefix="/api/png-to-pdf", tags=["PNG to PDF"])
 app.include_router(
     image_converter.router, prefix="/api/image-converter", tags=["Image Converter"]
+)
+app.include_router(
+    password_generator.router,
+    prefix="/api/password-generator",
+    tags=["Password Generator"],
 )
 
 
