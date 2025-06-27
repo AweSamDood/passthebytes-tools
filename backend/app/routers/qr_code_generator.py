@@ -9,8 +9,14 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from PIL import Image
 
-from app.models.qr_code import (ContactData, EmailData, QRCustomization,
-                                TextData, URLData, WiFiData)
+from app.models.qr_code import (
+    ContactData,
+    EmailData,
+    QRCustomization,
+    TextData,
+    URLData,
+    WiFiData,
+)
 
 router = APIRouter()
 
