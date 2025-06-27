@@ -83,7 +83,7 @@ const tools = [
         description: 'Create QR codes for URLs, text, and more.',
         icon: QrCode,
         path: '/qr-code-generator',
-        status: 'coming-soon',
+        status: 'available',
         features: ['Custom Colors', 'Logo Upload', 'Multiple Formats']
     }
 ];
