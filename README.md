@@ -40,6 +40,8 @@ I believe that you have the right to use online tools without compromising your 
 - Password Generator
 - Text from Image Extractor (OCR)
 - YouTube to MP3/MP4 Downloader
+- Diff Checker
+- QR Code Generator
 
 ## Technology Stack
 
