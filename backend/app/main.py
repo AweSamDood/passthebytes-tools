@@ -4,7 +4,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import image_converter, password_generator, png_to_pdf, qr_code_generator
+from .routers import (image_converter, password_generator, png_to_pdf,
+                      qr_code_generator)
 
 # Create FastAPI instance
 app = FastAPI(

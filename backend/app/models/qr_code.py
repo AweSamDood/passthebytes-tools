@@ -1,11 +1,15 @@
-from pydantic import BaseModel, Field
 from typing import Optional, Union
+
+from pydantic import BaseModel, Field
+
 
 class URLData(BaseModel):
     url: str
 
+
 class TextData(BaseModel):
     text: str
+
 
 class WiFiData(BaseModel):
     ssid: str
@@ -13,10 +17,12 @@ class WiFiData(BaseModel):
     security: str
     hidden: bool
 
+
 class EmailData(BaseModel):
     email: str
     subject: Optional[str] = None
     body: Optional[str] = None
+
 
 class ContactData(BaseModel):
     first_name: str
@@ -27,6 +33,7 @@ class ContactData(BaseModel):
     job_title: Optional[str] = None
     website: Optional[str] = None
 
+
 class QRCustomization(BaseModel):
     size: int = Field(default=400, ge=200, le=2000)
     foreground_color: str = "#000000"
@@ -34,6 +41,7 @@ class QRCustomization(BaseModel):
     error_correction: str = "M"  # L, M, Q, H
     border_size: int = 4
     corner_style: str = "square"  # square, rounded
+
 
 class QRRequest(BaseModel):
     qr_type: str
