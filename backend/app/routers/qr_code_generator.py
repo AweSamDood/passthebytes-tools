@@ -20,7 +20,8 @@ def generate_wifi_string(wifi_data: WiFiData):
         f"WIFI:T:{wifi_data.security};"
         f"S:{wifi_data.ssid};"
         f"P:{wifi_data.password};"
-        f"H:{'true' if wifi_data.hidden else 'false'};;"
+        f"H:{'true' if wifi_data.hidden else 'false'};"
+        f";"
     )
 
 
