@@ -82,3 +82,24 @@ export const generatePassword = async (options) => {
         throw error;
     }
 };
+
+export const generateQRCode = async (qrData, logoFile) => {
+  const formData = new FormData();
+  formData.append('request_data', JSON.stringify(qrData));
+  if (logoFile) {
+    formData.append('logo_file', logoFile);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/qr-code-generator/generate`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("QR generation failed:", errorText);
+    throw new Error('QR generation failed');
+  }
+
+  return await response.blob();
+};

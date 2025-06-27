@@ -1,0 +1,5 @@
+[settings]
+profile = "black"
+
+[tool.isort]
+profile = "black"

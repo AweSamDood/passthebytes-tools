@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import image_converter, password_generator, png_to_pdf
+from .routers import image_converter, password_generator, png_to_pdf, qr_code_generator
 
 # Create FastAPI instance
 app = FastAPI(
@@ -35,6 +35,11 @@ app.include_router(
     password_generator.router,
     prefix="/api/password-generator",
     tags=["Password Generator"],
+)
+app.include_router(
+    qr_code_generator.router,
+    prefix="/api/qr-code-generator",
+    tags=["QR Code Generator"],
 )
 
 

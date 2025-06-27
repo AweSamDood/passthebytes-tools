@@ -10,7 +10,7 @@ import {
     Box,
     Chip
 } from '@mui/material';
-import { PictureAsPdf, Update, VpnKey, DocumentScanner, YouTube } from '@mui/icons-material';
+import { PictureAsPdf, Update, VpnKey, DocumentScanner, YouTube, CompareArrows, QrCode } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const tools = [
@@ -67,6 +67,24 @@ const tools = [
         path: '/youtube-downloader',
         status: 'coming-soon',
         features: ['MP3 Audio', 'MP4 Video', 'Multiple Resolutions']
+    },
+    {
+        id: 'diff-checker',
+        title: 'Diff Checker',
+        description: 'Compare two text files to find the differences.',
+        icon: CompareArrows,
+        path: '/diff-checker',
+        status: 'coming-soon',
+        features: ['Side-by-Side View', 'Inline View', 'Syntax Highlighting']
+    },
+    {
+        id: 'qr-code-generator',
+        title: 'QR Code Generator',
+        description: 'Create QR codes for URLs, text, and more.',
+        icon: QrCode,
+        path: '/qr-code-generator',
+        status: 'available',
+        features: ['Custom Colors', 'Logo Upload', 'Multiple Formats']
     }
 ];
 
