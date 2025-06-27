@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Grid, Paper, Tabs, Tab, TextField, Button, Slider, Typography, Box,
     FormControl, InputLabel, Select, MenuItem, Checkbox, FormControlLabel
@@ -25,8 +25,8 @@ const QrCodeGenerator = () => {
     const [error, setError] = useState(null);
     const [logoFile, setLogoFile] = useState(null);
 
-    const debouncedGenerateQr = useCallback(
-        debounce(async (config, logo) => {
+    const debouncedGenerateQr = useMemo(
+        () => debounce(async (config, logo) => {
             try {
                 setLoading(true);
                 setError(null);
