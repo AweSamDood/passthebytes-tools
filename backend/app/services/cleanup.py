@@ -7,6 +7,8 @@ TEMP_DIRS = ["temp_downloads", "uploads"]
 
 def cleanup_temporary_files():
     for temp_dir in TEMP_DIRS:
+        Path(temp_dir).mkdir(parents=True, exist_ok=True)
+    for temp_dir in TEMP_DIRS:
         path = Path(temp_dir)
         if not path.is_dir():
             continue
