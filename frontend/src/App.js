@@ -133,59 +133,50 @@ function App() {
                     <Container
                         maxWidth="xl"
                         sx={{
-                            mt: { xs: 2, sm: 4 },
-                            mb: { xs: 2, sm: 4 },
+                            mt: { xs: 1, sm: 2 },
+                            mb: { xs: 1, sm: 2 },
                             flexGrow: 1,
                             px: { xs: 2, sm: 3 }
                         }}
                     >
-                        <Fade in timeout={800}>
+                        <Fade in timeout={500}>
                             <Paper
-                                elevation={2}
+                                elevation={1}
                                 sx={{
-                                    p: { xs: 2, sm: 3 },
-                                    mb: { xs: 2, sm: 4 },
-                                    background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
-                                    border: '1px solid rgba(25,118,210,0.1)'
+                                    p: { xs: 1.5, sm: 2 },
+                                    mb: { xs: 2, sm: 3 },
+                                    backgroundColor: 'grey.50',
+                                    border: '1px solid',
+                                    borderColor: 'grey.200'
                                 }}
                             >
-                                <Typography
-                                    variant="h6"
-                                    color="primary.dark"
-                                    gutterBottom
-                                    sx={{
-                                        fontWeight: 600,
-                                        fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                                    }}
-                                >
-                                    🔒 Your Privacy is Our Priority
-                                </Typography>
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{
-                                        lineHeight: 1.6,
-                                        fontSize: { xs: '0.875rem', sm: '0.875rem' }
-                                    }}
-                                >
-                                    We are deeply committed to protecting your privacy. We collect absolutely no data, and all uploaded files are permanently deleted from our servers the moment they are processed. The entire project is open-source, and you can review the code on{' '}
-                                    <Link
-                                        href="https://github.com/AweSamDood/passthebytes-tools"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Typography
+                                        variant="body2"
                                         sx={{
-                                            fontWeight: 600,
-                                            color: 'primary.main',
-                                            textDecoration: 'none',
-                                            '&:hover': {
-                                                textDecoration: 'underline'
-                                            }
+                                            fontWeight: 500,
+                                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                                            flexGrow: 1
                                         }}
                                     >
-                                        GitHub
-                                    </Link>
-                                    {' '}to verify this for yourself.
-                                </Typography>
+                                        🔒 <strong>Privacy First:</strong> All files are processed locally and deleted immediately. No data is stored.{' '}
+                                        <Link
+                                            href="https://github.com/AweSamDood/passthebytes-tools"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                                color: 'primary.main',
+                                                textDecoration: 'none',
+                                                fontWeight: 500,
+                                                '&:hover': {
+                                                    textDecoration: 'underline'
+                                                }
+                                            }}
+                                        >
+                                            View Source
+                                        </Link>
+                                    </Typography>
+                                </Box>
                             </Paper>
                         </Fade>
 
