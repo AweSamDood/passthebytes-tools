@@ -20,8 +20,9 @@ async def generate_mocking_text(data: MockingTextInput):
     letter_index = 0
     for char in input_text:
         if char.isalpha():
-            if (letter_index % 2 == 0 and not start_with_lowercase) or \
-               (letter_index % 2 != 0 and start_with_lowercase):
+            if (letter_index % 2 == 0 and not start_with_lowercase) or (
+                letter_index % 2 != 0 and start_with_lowercase
+            ):
                 result.append(char.upper())
             else:
                 result.append(char.lower())
