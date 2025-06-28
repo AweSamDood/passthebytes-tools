@@ -12,6 +12,7 @@ import ImageConverter from './components/ImageConverter/ImageConverter';
 import PasswordGenerator from './components/PasswordGenerator/PasswordGenerator';
 import QrCodeGenerator from './components/QrCodeGenerator/QrCodeGenerator';
 import Footer from './components/Footer';
+import YouTubeDownloader from './components/YouTubeDownloader/YouTubeDownloader';
 
 // Create a custom theme
 const theme = createTheme({
@@ -59,6 +60,7 @@ function App() {
                             <Route path="/image-converter" element={<ImageConverter />} />
                             <Route path="/password-generator" element={<PasswordGenerator />} />
                             <Route path="/qr-code-generator" element={<QrCodeGenerator />} />
+                            <Route path="/youtube-downloader" element={<YouTubeDownloader />} />
                         </Routes>
                     </Container>
                     <Footer />

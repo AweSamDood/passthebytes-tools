@@ -101,5 +101,131 @@ export const generateQRCode = async (qrData, logoFile) => {
     throw new Error('QR generation failed');
   }
 
-  return await response.blob();
+  return response.blob();
+};
+
+export const getYouTubeInfo = async (url) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/info`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+};
+
+export const downloadYouTubeFile = async (url, format) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/download/${format}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get('content-disposition');
+    let filename = `download.${format}`;
+    if (contentDisposition) {
+        const filenameStarMatch = contentDisposition.match(/filename\*=utf-8''(.+)/i);
+        if (filenameStarMatch && filenameStarMatch.length > 1) {
+            filename = decodeURIComponent(filenameStarMatch[1]);
+        } else {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1].replace(/"/g, '');
+            }
+        }
+    }
+
+    return { blob, filename };
+};
+
+export const getYouTubePlaylistInfo = async (url) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/playlist-info`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+};
+
+export const downloadYouTubePlaylist = async (url, video_ids) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/download-playlist`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, video_ids }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get('content-disposition');
+    let filename = 'playlist.zip';
+    if (contentDisposition) {
+        const filenameStarMatch = contentDisposition.match(/filename\*=utf-8''(.+)/i);
+        if (filenameStarMatch && filenameStarMatch.length > 1) {
+            filename = decodeURIComponent(filenameStarMatch[1]);
+        } else {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1].replace(/"/g, '');
+            }
+        }
+    }
+
+    return { blob, filename };
+};
+
+export const startYouTubePlaylistDownload = async (url, video_ids) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/download-playlist`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, video_ids }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+};
+
+export const getYouTubePlaylistProgress = async (jobId) => {
+    const response = await fetch(`${API_BASE_URL}/api/youtube/playlist-download-progress/${jobId}`);
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
 };

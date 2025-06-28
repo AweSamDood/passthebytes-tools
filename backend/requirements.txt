@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 pillow-avif-plugin==1.4.2
 qrcode[pil]==7.4.2
 vobject==0.9.6.1
+yt-dlp
+apscheduler

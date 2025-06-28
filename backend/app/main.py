@@ -1,25 +1,54 @@
-# app/main.py
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import image_converter, password_generator, png_to_pdf, qr_code_generator
+from .routers import (
+    image_converter,
+    password_generator,
+    png_to_pdf,
+    qr_code_generator,
+    youtube_downloader,
+)
+from .services.cleanup import cleanup_temporary_files
 
-# Create FastAPI instance
+# Scheduler for cleanup tasks
+scheduler = BackgroundScheduler()
+scheduler.add_job(cleanup_temporary_files, "interval", hours=1)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+
 app = FastAPI(
     title="PassTheBytes Tools API",
     description="A collection of useful tools for file conversion and processing",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Configure CORS
+# Configure CORS based on environment
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+if ENVIRONMENT == "production":
+    allowed_origins = ["https://tools.passthebytes.com"]
+else:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your domain
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "content-disposition"],
 )
 
 # Create uploads directory if it doesn't exist
@@ -40,6 +69,11 @@ app.include_router(
     qr_code_generator.router,
     prefix="/api/qr-code-generator",
     tags=["QR Code Generator"],
+)
+app.include_router(
+    youtube_downloader.router,
+    prefix="/api/youtube",
+    tags=["YouTube Downloader"],
 )
 
 

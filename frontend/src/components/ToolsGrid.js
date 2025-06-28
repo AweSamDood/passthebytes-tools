@@ -65,7 +65,7 @@ const tools = [
         description: 'Download YouTube videos as MP3 or MP4 files.',
         icon: YouTube,
         path: '/youtube-downloader',
-        status: 'coming-soon',
+        status: 'available',
         features: ['MP3 Audio', 'MP4 Video', 'Multiple Resolutions']
     },
     {
