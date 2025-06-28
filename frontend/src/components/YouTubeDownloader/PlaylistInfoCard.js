@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     Box,
-    TextField,
-    Button,
     Typography,
     Paper,
-    Alert,
-    CircularProgress,
     Divider,
     Chip
 } from '@mui/material';
-import { PlaylistPlay, GetApp } from '@mui/icons-material';
+import { PlaylistPlay } from '@mui/icons-material';
 
 const PlaylistInfoCard = ({ playlistInfo, onSelectionChange, loading }) => {
     if (!playlistInfo) return null;

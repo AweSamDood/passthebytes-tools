@@ -11,10 +11,7 @@ import {
     Chip,
     Container,
     Fade,
-    Badge,
-    Divider,
-    IconButton,
-    Tooltip
+    Divider
 } from '@mui/material';
 import {
     PictureAsPdf,
@@ -24,10 +21,7 @@ import {
     YouTube,
     CompareArrows,
     QrCode,
-    TextFields,
-    Star,
-    Timeline,
-    Upcoming
+    TextFields
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 

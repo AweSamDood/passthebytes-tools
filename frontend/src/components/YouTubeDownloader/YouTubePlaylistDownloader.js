@@ -13,10 +13,8 @@ import {
     Slider,
     Paper,
     Container,
-    Divider,
-    Chip
 } from '@mui/material';
-import { PlaylistPlay, GetApp, CloudDownload } from '@mui/icons-material';
+import { PlaylistPlay } from '@mui/icons-material';
 import { getYouTubePlaylistInfo, startYouTubePlaylistDownload, getYouTubePlaylistProgress } from '../../utils/api';
 import { API_BASE_URL } from '../../config';
 import PlaylistInfoCard from './PlaylistInfoCard';

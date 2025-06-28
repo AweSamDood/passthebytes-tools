@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Typography, CircularProgress, Card, CardContent, CardMedia, LinearProgress, Container, Paper } from '@mui/material';
+import { Box, TextField, Button, Typography, CircularProgress, CardContent, CardMedia, LinearProgress, Container, Paper } from '@mui/material';
 import { getYouTubeInfo, downloadYouTubeFile } from '../../utils/api';
 
 const YouTubeDownloaderComponent = ({ format }) => {
