@@ -9,6 +9,7 @@ import Header from './components/Header';
 import ToolsGrid from './components/ToolsGrid';
 import PngToPdfConverter from './components/PngToPdf/PngToPdfConverter';
 import ImageConverter from './components/ImageConverter/ImageConverter';
+import MockingText from './components/MockingText'; // Added
 import PasswordGenerator from './components/PasswordGenerator/PasswordGenerator';
 import QrCodeGenerator from './components/QrCodeGenerator/QrCodeGenerator';
 import Footer from './components/Footer';
@@ -58,6 +59,7 @@ function App() {
                             <Route path="/" element={<ToolsGrid />} />
                             <Route path="/png-to-pdf" element={<PngToPdfConverter />} />
                             <Route path="/image-converter" element={<ImageConverter />} />
+                            <Route path="/mocking-text" element={<MockingText />} /> {/* Added */}
                             <Route path="/password-generator" element={<PasswordGenerator />} />
                             <Route path="/qr-code-generator" element={<QrCodeGenerator />} />
                             <Route path="/youtube-downloader" element={<YouTubeDownloader />} />

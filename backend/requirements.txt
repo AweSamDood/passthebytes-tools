@@ -10,5 +10,6 @@ qrcode[pil]==7.4.2
 vobject==0.9.6.1
 yt-dlp
 apscheduler
-
+pytest
+httpx
 werkzeug==3.1.3
