@@ -35,13 +35,28 @@ I believe that you have the right to use online tools without compromising your 
 - **Batch Processing**: Handles multiple files and provides a ZIP archive for download.
 - **Transparency Handling**: Correctly handles transparent backgrounds when converting to formats like JPEG.
 
+### YouTube Downloader
+- **Single Video**: Download single YouTube videos in MP3 (audio) or MP4 (video) format.
+- **Playlist Support**: Fetch and download entire YouTube playlists.
+- **Flexible Selection**: Select a range of videos from a playlist or pick them individually.
+- **Batch Download**: Downloads selected videos and packages them into a convenient ZIP file.
+- **Privacy-Focused**: No download history is stored.
+
+### Password Generator
+- **Customizable**: Set the length and include/exclude numbers, symbols, and uppercase/lowercase characters.
+- **Secure**: Generates strong, random passwords locally in your browser.
+
+### QR Code Generator
+- **Simple Input**: Enter any URL or text.
+- **Instant Preview**: See the QR code as you type.
+- **Download**: Save the QR code as a PNG image.
+
 ### Coming Soon
 - Image Optimizer
-- Password Generator
 - Text from Image Extractor (OCR)
-- YouTube to MP3/MP4 Downloader
 - Diff Checker
-- QR Code Generator
+- Mock text generator
+- Meme Generator
 
 ## Technology Stack
 
