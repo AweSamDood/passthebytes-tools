@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+from werkzeug.utils import secure_filename
 import re
 import uuid
 import zipfile
@@ -359,7 +360,12 @@ async def download_zip(
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     logging.info(f"Download request received for zip: {zip_name}")
-    zip_path = os.path.join("temp_downloads", zip_name)
+    base_path = "temp_downloads"
+    sanitized_zip_name = secure_filename(zip_name)
+    zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
+    if not zip_path.startswith(base_path):
+        logging.error(f"Access to the specified file is forbidden: {zip_path}")
+        raise HTTPException(status_code=403, detail="Access to the specified file is forbidden.")
     if not os.path.exists(zip_path):
         logging.error(f"Zip file not found at path: {zip_path}")
         raise HTTPException(status_code=404, detail="Zip file not found.")
