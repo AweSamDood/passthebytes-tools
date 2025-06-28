@@ -333,7 +333,19 @@ async def download_playlist(
 
 @router.get("/playlist-download-progress/{job_id}")
 async def get_playlist_download_progress(job_id: str):
-    progress_file = os.path.join("temp_downloads", f"{job_id}_progress.json")
+    try:
+        # Validate job_id as a UUID
+        uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+
+    base_path = "temp_downloads"
+    progress_file = os.path.normpath(os.path.join(base_path, f"{job_id}_progress.json"))
+
+    # Ensure the normalized path is within the base directory
+    if not progress_file.startswith(base_path):
+        raise HTTPException(status_code=403, detail="Access to the specified file is forbidden.")
+
     if not os.path.exists(progress_file):
         raise HTTPException(status_code=404, detail="Job not found.")
     with open(progress_file, "r") as f:
