@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { generateMockingText } from '../utils/api';
 
 const MockingText = () => {
     const [text, setText] = useState('');
@@ -9,11 +9,8 @@ const MockingText = () => {
 
     const handleGenerate = async () => {
         try {
-            const response = await axios.post('/api/mocking-text', {
-                text,
-                start_with_lowercase: startWithLowercase,
-            });
-            setMockedText(response.data.result);
+            const response = await generateMockingText(text, startWithLowercase);
+            setMockedText(response.result);
             setError('');
         } catch (err) {
             setError('An error occurred while generating mocking text.');
@@ -60,4 +57,3 @@ const MockingText = () => {
 };
 
 export default MockingText;
-

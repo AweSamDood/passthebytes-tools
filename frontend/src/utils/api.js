@@ -229,3 +229,25 @@ export const getYouTubePlaylistProgress = async (jobId) => {
 
     return response.json();
 };
+
+export const generateMockingText = async (text, start_with_lowercase) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/mocking-text`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text, start_with_lowercase }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+};
