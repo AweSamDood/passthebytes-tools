@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-from werkzeug.utils import secure_filename
 import re
 import uuid
 import zipfile
@@ -12,6 +11,7 @@ import yt_dlp
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from werkzeug.utils import secure_filename
 
 # from urllib.parse import parse_qs, urlparse
 
@@ -345,7 +345,9 @@ async def get_playlist_download_progress(job_id: str):
 
     # Ensure the normalized path is within the base directory
     if not progress_file.startswith(base_path):
-        raise HTTPException(status_code=403, detail="Access to the specified file is forbidden.")
+        raise HTTPException(
+            status_code=403, detail="Access to the specified file is forbidden."
+        )
 
     if not os.path.exists(progress_file):
         raise HTTPException(status_code=404, detail="Job not found.")
@@ -365,7 +367,9 @@ async def download_zip(
     zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
     if not zip_path.startswith(base_path):
         logging.error(f"Access to the specified file is forbidden: {zip_path}")
-        raise HTTPException(status_code=403, detail="Access to the specified file is forbidden.")
+        raise HTTPException(
+            status_code=403, detail="Access to the specified file is forbidden."
+        )
     if not os.path.exists(zip_path):
         logging.error(f"Zip file not found at path: {zip_path}")
         raise HTTPException(status_code=404, detail="Zip file not found.")
