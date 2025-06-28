@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, TextField, Button, Typography, List, ListItem, ListItemText, Checkbox, CircularProgress, Alert, Slider, LinearProgress } from '@mui/material';
 import { getYouTubePlaylistInfo, startYouTubePlaylistDownload, getYouTubePlaylistProgress } from '../../utils/api';
+import { API_BASE_URL } from '../../config';
 
 const YouTubePlaylistDownloader = () => {
     const [playlistUrl, setPlaylistUrl] = useState('');
@@ -112,7 +113,6 @@ const YouTubePlaylistDownloader = () => {
 
     const handleDownloadZip = async () => {
         if (zipPath) {
-            const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8008';
             const downloadUrl = `${API_BASE_URL}/api/youtube/download-zip/?filename=${encodeURIComponent(zipPath)}`;
             window.location.href = downloadUrl;
         }

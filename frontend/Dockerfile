@@ -30,4 +30,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Expose port
 EXPOSE 80
 
-CMD ["/bin/sh", "-c", "printenv && nginx -g 'daemon off;'"]
+# The CMD is updated to first substitute the environment variables in the JavaScript files and then start nginx.
+# We use a temporary file to avoid issues with in-place editing.
+CMD ["/bin/sh", "-c", "printenv && envsubst < /usr/share/nginx/html/index.html > /usr/share/nginx/html/index.html.tmp && mv /usr/share/nginx/html/index.html.tmp /usr/share/nginx/html/index.html && nginx -g 'daemon off;'"]
+

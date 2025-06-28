@@ -1,5 +1,4 @@
-// src/utils/api.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+import { API_BASE_URL } from '../config';
 
 export const convertToPdf = async (formData) => {
     try {
