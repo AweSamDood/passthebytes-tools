@@ -11,6 +11,7 @@ import yt_dlp
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from werkzeug.utils import secure_filename
 
 # from urllib.parse import parse_qs, urlparse
 
@@ -333,7 +334,21 @@ async def download_playlist(
 
 @router.get("/playlist-download-progress/{job_id}")
 async def get_playlist_download_progress(job_id: str):
-    progress_file = os.path.join("temp_downloads", f"{job_id}_progress.json")
+    try:
+        # Validate job_id as a UUID
+        uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job ID format.")
+
+    base_path = "temp_downloads"
+    progress_file = os.path.normpath(os.path.join(base_path, f"{job_id}_progress.json"))
+
+    # Ensure the normalized path is within the base directory
+    if not progress_file.startswith(base_path):
+        raise HTTPException(
+            status_code=403, detail="Access to the specified file is forbidden."
+        )
+
     if not os.path.exists(progress_file):
         raise HTTPException(status_code=404, detail="Job not found.")
     with open(progress_file, "r") as f:
@@ -347,7 +362,14 @@ async def download_zip(
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     logging.info(f"Download request received for zip: {zip_name}")
-    zip_path = os.path.join("temp_downloads", zip_name)
+    base_path = "temp_downloads"
+    sanitized_zip_name = secure_filename(zip_name)
+    zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
+    if not zip_path.startswith(base_path):
+        logging.error(f"Access to the specified file is forbidden: {zip_path}")
+        raise HTTPException(
+            status_code=403, detail="Access to the specified file is forbidden."
+        )
     if not os.path.exists(zip_path):
         logging.error(f"Zip file not found at path: {zip_path}")
         raise HTTPException(status_code=404, detail="Zip file not found.")
