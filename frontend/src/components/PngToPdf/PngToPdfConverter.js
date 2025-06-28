@@ -9,7 +9,8 @@ import {
     Slider,
     Alert,
     CircularProgress,
-    Chip
+    Chip,
+    Grid
 } from '@mui/material';
 import { CloudUpload, Download, Clear, Reorder } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -120,11 +121,18 @@ function PngToPdfConverter() {
     };
 
     const dpiMarks = [
-        { value: 72, label: '72 DPI (Web)' },
-        { value: 150, label: '150 DPI' },
-        { value: 300, label: '300 DPI (Print)' },
-        { value: 600, label: '600 DPI (High)' }
+        { value: 72, label: '72' },
+        { value: 150, label: '150' },
+        { value: 300, label: '300' },
+        { value: 600, label: '600' }
     ];
+
+    const getDpiDescription = (dpi) => {
+        if (dpi <= 72) return 'Web Quality';
+        if (dpi <= 150) return 'Standard Quality';
+        if (dpi <= 300) return 'Print Quality';
+        return 'High Quality';
+    };
 
     return (
         <Box>
@@ -234,35 +242,59 @@ function PngToPdfConverter() {
                         3. Conversion Settings
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Grid container spacing={3}>
                         {/* Filename */}
-                        <TextField
-                            label="Output Filename"
-                            value={settings.filename}
-                            onChange={(e) => setSettings(prev => ({ ...prev, filename: e.target.value }))}
-                            fullWidth
-                            helperText="PDF extension will be added automatically"
-                        />
-
-                        {/* DPI Slider */}
-                        <Box>
-                            <Typography gutterBottom>
-                                Quality (DPI): {settings.dpi}
-                            </Typography>
-                            <Slider
-                                value={settings.dpi}
-                                onChange={(e, value) => setSettings(prev => ({ ...prev, dpi: value }))}
-                                min={72}
-                                max={600}
-                                marks={dpiMarks}
-                                step={25}
-                                valueLabelDisplay="auto"
+                        <Grid item xs={12} md={6}>
+                            <TextField
+                                label="Output Filename"
+                                value={settings.filename}
+                                onChange={(e) => setSettings(prev => ({ ...prev, filename: e.target.value }))}
+                                fullWidth
+                                helperText="PDF extension will be added automatically"
                             />
-                            <Typography variant="body2" color="text.secondary">
-                                Higher DPI = better quality but larger file size
-                            </Typography>
-                        </Box>
-                    </Box>
+                        </Grid>
+
+                        {/* DPI Settings */}
+                        <Grid item xs={12} md={6}>
+                            <Box sx={{ px: 2 }}>
+                                <Typography gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                    <span>Quality:</span>
+                                    <Chip
+                                        label={`${settings.dpi} DPI`}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                    />
+                                    <Chip
+                                        label={getDpiDescription(settings.dpi)}
+                                        size="small"
+                                        color="secondary"
+                                    />
+                                </Typography>
+                                <Slider
+                                    value={settings.dpi}
+                                    onChange={(e, value) => setSettings(prev => ({ ...prev, dpi: value }))}
+                                    min={72}
+                                    max={600}
+                                    marks={dpiMarks}
+                                    step={25}
+                                    valueLabelDisplay="auto"
+                                    sx={{
+                                        '& .MuiSlider-markLabel': {
+                                            fontSize: '0.75rem',
+                                            '@media (max-width: 600px)': {
+                                                fontSize: '0.65rem',
+                                                transform: 'translateX(-50%) translateY(8px)'
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    Higher DPI = better quality but larger file size
+                                </Typography>
+                            </Box>
+                        </Grid>
+                    </Grid>
                 </Paper>
             )}
 
@@ -299,3 +331,4 @@ function PngToPdfConverter() {
 }
 
 export default PngToPdfConverter;
+
