@@ -315,10 +315,13 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
 
 @router.post("/download-playlist")
 async def download_playlist(
-    request: PlaylistDownloadModel, background_tasks: BackgroundTasks
+        request: PlaylistDownloadModel, background_tasks: BackgroundTasks
 ):
     job_id = str(uuid.uuid4())
     logging.info(f"Creating download job with job_id: {job_id}")
+
+    os.makedirs("temp_downloads", exist_ok=True)
+
     progress_file = os.path.join("temp_downloads", f"{job_id}_progress.json")
 
     # Create the progress file immediately with an initializing state
