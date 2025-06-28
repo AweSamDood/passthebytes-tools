@@ -51,11 +51,15 @@ I believe that you have the right to use online tools without compromising your 
 - **Instant Preview**: See the QR code as you type.
 - **Download**: Save the QR code as a PNG image.
 
+### Mocking Text Generator
+- **Alternating Case**: Converts text into "mOcKiNg TeXt" format.
+- **Lowercase Start**: Option to begin the sentence with a lowercase letter.
+- **Smart Handling**: Ignores non-alphabetic characters, preserving the alternating pattern.
+
 ### Coming Soon
 - Image Optimizer
 - Text from Image Extractor (OCR)
 - Diff Checker
-- Mock text generator
 - Meme Generator
 
 ## Technology Stack

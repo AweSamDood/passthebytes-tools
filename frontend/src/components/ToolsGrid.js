@@ -10,7 +10,7 @@ import {
     Box,
     Chip
 } from '@mui/material';
-import { PictureAsPdf, Update, VpnKey, DocumentScanner, YouTube, CompareArrows, QrCode } from '@mui/icons-material';
+import { PictureAsPdf, Update, VpnKey, DocumentScanner, YouTube, CompareArrows, QrCode, TextFields } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const tools = [
@@ -67,6 +67,15 @@ const tools = [
         path: '/youtube-downloader',
         status: 'available',
         features: ['MP3 Audio', 'MP4 Video', 'Multiple Resolutions']
+    },
+    {
+        id: 'mocking-text',
+        title: 'Mocking Text Generator',
+        description: 'Convert text to \'mOcKiNg TeXt\' case.',
+        icon: TextFields,
+        path: '/mocking-text',
+        status: 'available',
+        features: ['Alternating Case', 'Starts with Lowercase option']
     },
     {
         id: 'diff-checker',

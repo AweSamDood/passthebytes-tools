@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .routers import mocking_text  # Added
 from .routers import (
     image_converter,
     password_generator,
@@ -75,6 +76,7 @@ app.include_router(
     prefix="/api/youtube",
     tags=["YouTube Downloader"],
 )
+app.include_router(mocking_text.router, prefix="/api", tags=["Mocking Text"])  # Added
 
 
 @app.get("/")
