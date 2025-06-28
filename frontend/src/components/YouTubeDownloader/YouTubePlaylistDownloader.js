@@ -1,7 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Button, Typography, List, ListItem, ListItemText, Checkbox, CircularProgress, Alert, Slider, LinearProgress } from '@mui/material';
+import {
+    Box,
+    TextField,
+    Button,
+    Typography,
+    List,
+    ListItem,
+    ListItemText,
+    Checkbox,
+    CircularProgress,
+    Alert,
+    Slider,
+    Paper,
+    Container,
+} from '@mui/material';
+import { PlaylistPlay } from '@mui/icons-material';
 import { getYouTubePlaylistInfo, startYouTubePlaylistDownload, getYouTubePlaylistProgress } from '../../utils/api';
 import { API_BASE_URL } from '../../config';
+import PlaylistInfoCard from './PlaylistInfoCard';
+import PlaylistProgressCard from './PlaylistProgressCard';
 
 const YouTubePlaylistDownloader = () => {
     const [playlistUrl, setPlaylistUrl] = useState('');
@@ -25,7 +42,7 @@ const YouTubePlaylistDownloader = () => {
             pollingIntervalRef.current = setInterval(async () => {
                 try {
                     const progressData = await getYouTubePlaylistProgress(jobId);
-                    pollRetries.current = 0; // Reset retries on successful fetch
+                    pollRetries.current = 0;
 
                     if (progressData.status === 'complete') {
                         setStatus('Ready to download');
@@ -57,7 +74,7 @@ const YouTubePlaylistDownloader = () => {
                         setJobId(null);
                     }
                 }
-            }, 2000); // Poll every 2 seconds
+            }, 2000);
         }
 
         return () => {
@@ -99,137 +116,173 @@ const YouTubePlaylistDownloader = () => {
         setTotalFiles(selectedVideos.length);
         setStatus('Initializing...');
         setZipPath(null);
-        setJobId(null);
 
         try {
-            const data = await startYouTubePlaylistDownload(playlistUrl, selectedVideos);
-            setJobId(data.job_id);
+            const response = await startYouTubePlaylistDownload(playlistUrl, selectedVideos);
+            setJobId(response.job_id);
         } catch (error) {
             console.error("Failed to start playlist download:", error);
-            setError(error.message || 'Failed to start preparation.');
+            setError(error.message || 'Failed to start playlist download.');
             setDownloading(false);
         }
     };
 
-    const handleDownloadZip = async () => {
+    const handleDownloadZip = () => {
         if (zipPath) {
-            const downloadUrl = `${API_BASE_URL}/api/youtube/download-zip/?filename=${encodeURIComponent(zipPath)}`;
-            window.location.href = downloadUrl;
+            const link = document.createElement('a');
+            link.href = `${API_BASE_URL}/api/youtube-downloader/download-zip/${zipPath}`;
+            link.download = zipPath;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-    };
-
-    const handleSelectVideo = (videoId) => {
-        setSelectedVideos(prev =>
-            prev.includes(videoId) ? prev.filter(id => id !== videoId) : [...prev, videoId]
-        );
     };
 
     const handleRangeChange = (event, newValue) => {
         setRange(newValue);
         if (playlistInfo) {
-            setSelectedVideos(playlistInfo.videos.slice(newValue[0] - 1, newValue[1]).map(v => v.id));
+            const start = newValue[0] - 1;
+            const end = newValue[1];
+            setSelectedVideos(playlistInfo.videos.slice(start, end).map(v => v.id));
         }
     };
 
-    const handleSelectAll = () => {
-        if (playlistInfo) {
-            if (selectedVideos.length === (range[1] - range[0] + 1)) {
-                setSelectedVideos([]);
-            } else {
-                setSelectedVideos(playlistInfo.videos.slice(range[0] - 1, range[1]).map(v => v.id));
-            }
-        }
+    const handleVideoToggle = (videoId) => {
+        setSelectedVideos(prev =>
+            prev.includes(videoId)
+                ? prev.filter(id => id !== videoId)
+                : [...prev, videoId]
+        );
     };
 
     return (
-        <Box>
-            <TextField
-                fullWidth
-                label="YouTube Playlist URL"
-                variant="outlined"
-                value={playlistUrl}
-                onChange={(e) => setPlaylistUrl(e.target.value)}
-                sx={{ mb: 2 }}
-            />
-            <Button variant="contained" onClick={handleFetchPlaylistInfo} disabled={loading}>
-                {loading ? <CircularProgress size={24} /> : 'Fetch Playlist Info'}
-            </Button>
+        <Container maxWidth="md" sx={{ py: 2 }}>
+            <Paper elevation={3} sx={{ p: 3, backgroundColor: 'background.paper' }}>
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                        <PlaylistPlay />
+                        MP3 Playlist Downloader
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Download multiple videos from a YouTube playlist as MP3 files
+                    </Typography>
+                </Box>
 
-            {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                        fullWidth
+                        label="Enter YouTube Playlist URL"
+                        variant="outlined"
+                        value={playlistUrl}
+                        onChange={(e) => setPlaylistUrl(e.target.value)}
+                        disabled={loading || downloading}
+                        placeholder="https://www.youtube.com/playlist?list=..."
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={handleFetchPlaylistInfo}
+                        disabled={loading || downloading}
+                        sx={{ minWidth: 120, whiteSpace: 'nowrap' }}
+                    >
+                        {loading ? <CircularProgress size={24} /> : 'Fetch Playlist'}
+                    </Button>
+                </Box>
+
+                {error && !downloading && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+            </Paper>
+
+            <PlaylistInfoCard playlistInfo={playlistInfo} loading={loading} />
 
             {playlistInfo && (
-                <Box sx={{ mt: 3 }}>
-                    <Typography variant="h6">{playlistInfo.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">{playlistInfo.videos.length} videos found.</Typography>
-                    <Alert severity="warning" sx={{ my: 2 }}>Note: You can only download up to 50 videos at a time.</Alert>
+                <Paper elevation={3} sx={{ p: 3, mt: 3, backgroundColor: 'background.paper' }}>
+                    <Typography variant="h6" gutterBottom>
+                        Select Videos to Download
+                    </Typography>
 
-                    <Box sx={{ width: '90%', mt: 2, mb: 2, mx: 'auto' }}>
-                        <Typography gutterBottom>Select Range to Download</Typography>
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                        <Typography variant="body2">
+                            <strong>Important:</strong> You can download up to 50 videos per request.
+                            When you change the range slider, the selection will automatically update to match your chosen range.
+                        </Typography>
+                    </Alert>
+
+                    <Box sx={{ mb: 3 }}>
+                        <Typography gutterBottom>
+                            Select Range: Videos {range[0]} to {range[1]} ({range[1] - range[0] + 1} videos will be selected)
+                        </Typography>
                         <Slider
                             value={range}
                             onChange={handleRangeChange}
                             valueLabelDisplay="auto"
                             min={1}
-                            max={playlistInfo.videos.length}
-                            marks
+                            max={Math.min(playlistInfo.videos.length, 50)}
+                            disabled={downloading}
                         />
                         <Typography variant="caption" color="text.secondary">
-                            Note: Moving the slider will select songs in the new range and unselect any manually selected songs.
+                            Maximum 50 videos can be downloaded at once. Use the slider to quickly select a range, or manually check/uncheck individual videos below.
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Button onClick={handleSelectAll}>
-                            {selectedVideos.length === (range[1] - range[0] + 1) ? 'Deselect All' : 'Select All in Range'}
-                        </Button>
-                        <Typography variant="body2">
-                            Selected: {selectedVideos.length} / 50 for download
-                        </Typography>
-                    </Box>
-
-                    <List sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd', borderRadius: 1 }}>
+                    <List sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                         {playlistInfo.videos.map((video, index) => (
-                            <ListItem key={video.id} dense button={true.toString()} onClick={() => handleSelectVideo(video.id)}>
+                            <ListItem
+                                key={video.id}
+                                dense
+                                sx={{
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    backgroundColor: selectedVideos.includes(video.id) ? 'action.selected' : 'transparent'
+                                }}
+                            >
                                 <Checkbox
                                     edge="start"
                                     checked={selectedVideos.includes(video.id)}
-                                    tabIndex={-1}
-                                    disableRipple
+                                    onChange={() => handleVideoToggle(video.id)}
+                                    disabled={downloading}
                                 />
-                                <ListItemText primary={`${index + 1}. ${video.title}`} />
+                                <ListItemText
+                                    primary={
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 30 }}>
+                                                {index + 1}.
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {video.title}
+                                            </Typography>
+                                        </Box>
+                                    }
+                                />
                             </ListItem>
                         ))}
                     </List>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handlePreparePlaylist}
-                        disabled={downloading || selectedVideos.length === 0}
-                        sx={{ mt: 2, mr: 1 }}
-                    >
-                        {downloading ? <CircularProgress size={24} /> : `Prepare ${selectedVideos.length} MP3s`}
-                    </Button>
-                    <Button
-                        variant="contained"
-                        color="success"
-                        onClick={handleDownloadZip}
-                        disabled={!zipPath || downloading}
-                        sx={{ mt: 2 }}
-                    >
-                        Download ZIP
-                    </Button>
-                    {(downloading || zipPath) && (
-                        <Box sx={{ width: '100%', mt: 2 }}>
-                            <Typography variant="body2">{`${status.charAt(0).toUpperCase() + status.slice(1)}: ${progress} / ${totalFiles}`}</Typography>
-                            <LinearProgress variant="determinate" value={totalFiles > 0 ? (progress / totalFiles) * 100 : 0} />
-                        </Box>
-                    )}
-                    {zipPath && !downloading && (
-                        <Alert severity="success" sx={{ mt: 2 }}>Playlist is ready for download.</Alert>
-                    )}
-                </Box>
+
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                        <Button
+                            variant="contained"
+                            onClick={handlePreparePlaylist}
+                            disabled={downloading || selectedVideos.length === 0}
+                            sx={{ minWidth: 200 }}
+                        >
+                            {downloading ? <CircularProgress size={24} /> : `Download ${selectedVideos.length} Videos`}
+                        </Button>
+                    </Box>
+                </Paper>
             )}
-        </Box>
+
+            <PlaylistProgressCard
+                downloading={downloading}
+                progress={progress}
+                totalFiles={totalFiles}
+                status={status}
+                error={downloading ? error : null}
+                zipPath={zipPath}
+                onDownloadZip={handleDownloadZip}
+            />
+        </Container>
     );
 };
 
