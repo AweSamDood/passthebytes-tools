@@ -41,16 +41,12 @@ echo "Deploying PassTheBytes Tools in $ENVIRONMENT mode..."
 #   exit 1
 # fi
 
-# Create .env file if it doesn't exist
-if [ ! -f .env ]; then
-  echo "Creating .env file from template..."
+# The .env file is now expected to be managed manually or by a secure process
+# outside of this script for production environments. For development, it can
+# be created from the example if it doesn't exist.
+if [ ! -f .env ] && [ "$ENVIRONMENT" != "production" ]; then
+  echo "Creating .env file from template for development..."
   cp .env.example .env
-
-  if [ "$ENVIRONMENT" = "production" ]; then
-    echo "Please edit .env file with production values before proceeding."
-    echo "Press Enter when ready..."
-    read
-  fi
 fi
 
 # Build and deploy based on environment
