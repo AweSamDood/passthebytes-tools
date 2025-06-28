@@ -1,0 +1,38 @@
+# docker-compose.yml (Development)
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8000"
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    env_file:
+      - ./.env
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3030:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - WDS_POLL=500
+      - WDS_SOCKET_PORT=3030
+    depends_on:
+      - backend
+    env_file:
+      - ./.env
+    restart: unless-stopped
+
+volumes:
+  backend_uploads:
