@@ -3,6 +3,7 @@ import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { Home, Build } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 
 function Header() {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ function Header() {
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                     PassTheBytes Tools
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     <Button
                         color="inherit"
                         startIcon={<Home />}
@@ -33,6 +34,7 @@ function Header() {
                     >
                         Home
                     </Button>
+                    <ThemeToggle />
                 </Box>
             </Toolbar>
         </AppBar>

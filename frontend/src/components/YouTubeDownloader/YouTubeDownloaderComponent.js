@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Typography, CircularProgress, Card, CardContent, CardMedia, LinearProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, CircularProgress, Card, CardContent, CardMedia, LinearProgress, Container, Paper } from '@mui/material';
 import { getYouTubeInfo, downloadYouTubeFile } from '../../utils/api';
 
 const YouTubeDownloaderComponent = ({ format }) => {
@@ -55,36 +55,60 @@ const YouTubeDownloaderComponent = ({ format }) => {
         }
     };
 
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            getInfo();
+        }
+    };
+
     return (
-        <Box>
-            <Typography variant="h5" gutterBottom align="center">
-                Download {format.toUpperCase()}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField
-                    fullWidth
-                    label="Enter YouTube URL"
-                    variant="outlined"
-                    value={url}
-                    onChange={handleUrlChange}
-                    disabled={loading || downloading}
-                />
-                <Button variant="contained" onClick={getInfo} disabled={loading || downloading}>
-                    {loading ? <CircularProgress size={24} /> : 'Get Info'}
-                </Button>
-            </Box>
-            {(loading) && (
-                <Box sx={{ width: '100%', my: 2 }}>
-                    <Typography variant="body2" align="center" sx={{ mb: 1 }}>{statusMessage}</Typography>
-                    <LinearProgress />
+        <Container maxWidth="md" sx={{ py: 2 }}>
+            <Paper elevation={3} sx={{ p: 3, backgroundColor: 'background.paper' }}>
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Typography variant="h5" gutterBottom>
+                        Download {format.toUpperCase()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Enter a YouTube video URL to download as {format.toUpperCase()}
+                    </Typography>
                 </Box>
-            )}
-            {error && <Typography color="error" align="center">{error}</Typography>}
+
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <TextField
+                        fullWidth
+                        label="Enter YouTube URL"
+                        variant="outlined"
+                        value={url}
+                        onChange={handleUrlChange}
+                        onKeyDown={handleKeyPress}
+                        disabled={loading || downloading}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={getInfo}
+                        disabled={loading || downloading}
+                        sx={{ minWidth: 100, whiteSpace: 'nowrap' }}
+                    >
+                        {loading ? <CircularProgress size={24} /> : 'Fetch'}
+                    </Button>
+                </Box>
+
+                {(loading) && (
+                    <Box sx={{ width: '100%', my: 2 }}>
+                        <Typography variant="body2" align="center" sx={{ mb: 1 }}>{statusMessage}</Typography>
+                        <LinearProgress />
+                    </Box>
+                )}
+
+                {error && <Typography color="error" align="center" sx={{ mt: 2 }}>{error}</Typography>}
+            </Paper>
+
             {videoInfo && !loading && (
-                <Card sx={{ mt: 3 }}>
+                <Paper elevation={3} sx={{ mt: 3, backgroundColor: 'background.paper' }}>
                     <CardMedia
                         component="img"
-                        sx={{ objectFit: 'contain' }}
+                        sx={{ objectFit: 'contain', maxHeight: 300 }}
                         image={videoInfo.thumbnail}
                         alt={videoInfo.title}
                     />
@@ -92,13 +116,25 @@ const YouTubeDownloaderComponent = ({ format }) => {
                         <Typography gutterBottom variant="h6" component="div">
                             {videoInfo.title}
                         </Typography>
-                        <Button variant="contained" color="primary" onClick={handleDownload} fullWidth disabled={downloading}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleDownload}
+                            fullWidth
+                            disabled={downloading}
+                            sx={{ mt: 2 }}
+                        >
                             {downloading ? <CircularProgress size={24} /> : `Download ${format.toUpperCase()}`}
                         </Button>
+                        {downloading && statusMessage && (
+                            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+                                {statusMessage}
+                            </Typography>
+                        )}
                     </CardContent>
-                </Card>
+                </Paper>
             )}
-        </Box>
+        </Container>
     );
 };
 

@@ -10,7 +10,8 @@ import {
     Alert,
     CircularProgress,
     Chip,
-    Grid
+    Grid,
+    Container
 } from '@mui/material';
 import { CloudUpload, Download, Clear, Reorder } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -135,7 +136,7 @@ function PngToPdfConverter() {
     };
 
     return (
-        <Box>
+        <Container maxWidth="md" sx={{ py: 2 }}>
             {/* Header */}
             <Box sx={{ mb: 4, textAlign: 'center' }}>
                 <Typography variant="h4" gutterBottom>
@@ -326,9 +327,8 @@ function PngToPdfConverter() {
                     {success}
                 </Alert>
             )}
-        </Box>
+        </Container>
     );
 }
 
 export default PngToPdfConverter;
-

@@ -1,10 +1,11 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Box, Typography, Paper, Link, Fade } from '@mui/material';
 
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Header from './components/Header';
 import ToolsGrid from './components/ToolsGrid';
 import PngToPdfConverter from './components/PngToPdf/PngToPdfConverter';
@@ -15,112 +16,11 @@ import QrCodeGenerator from './components/QrCodeGenerator/QrCodeGenerator';
 import Footer from './components/Footer';
 import YouTubeDownloader from './components/YouTubeDownloader/YouTubeDownloader';
 
-// Create a custom theme with better design consistency
-const theme = createTheme({
-    palette: {
-        mode: 'light',
-        primary: {
-            main: '#1976d2',
-            light: '#42a5f5',
-            dark: '#1565c0',
-        },
-        secondary: {
-            main: '#dc004e',
-            light: '#ff5983',
-            dark: '#9a0036',
-        },
-        background: {
-            default: '#f8fafc',
-            paper: '#ffffff',
-        },
-        grey: {
-            50: '#fafafa',
-            100: '#f5f5f5',
-            200: '#eeeeee',
-        },
-    },
-    typography: {
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-        h3: {
-            fontWeight: 700,
-            fontSize: '2.2rem',
-            '@media (max-width:600px)': {
-                fontSize: '1.8rem',
-            },
-        },
-        h4: {
-            fontWeight: 600,
-            fontSize: '1.8rem',
-            '@media (max-width:600px)': {
-                fontSize: '1.5rem',
-            },
-        },
-        h6: {
-            fontWeight: 500,
-        },
-        body1: {
-            lineHeight: 1.6,
-        },
-        body2: {
-            lineHeight: 1.5,
-        },
-    },
-    shape: {
-        borderRadius: 12,
-    },
-    components: {
-        MuiPaper: {
-            styleOverrides: {
-                root: {
-                    borderRadius: 12,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    '&.MuiPaper-elevation3': {
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                    },
-                },
-            },
-        },
-        MuiButton: {
-            styleOverrides: {
-                root: {
-                    borderRadius: 8,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    padding: '10px 24px',
-                },
-                containedPrimary: {
-                    boxShadow: '0 2px 8px rgba(25,118,210,0.3)',
-                    '&:hover': {
-                        boxShadow: '0 4px 16px rgba(25,118,210,0.4)',
-                    },
-                },
-            },
-        },
-        MuiTextField: {
-            styleOverrides: {
-                root: {
-                    '& .MuiOutlinedInput-root': {
-                        borderRadius: 8,
-                    },
-                },
-            },
-        },
-        MuiContainer: {
-            styleOverrides: {
-                root: {
-                    '@media (max-width:600px)': {
-                        paddingLeft: 16,
-                        paddingRight: 16,
-                    },
-                },
-            },
-        },
-    },
-});
+function AppContent() {
+    const { theme, isDark } = useTheme();
 
-function App() {
     return (
-        <ThemeProvider theme={theme}>
+        <MuiThemeProvider theme={theme}>
             <CssBaseline />
             <Router>
                 <Box sx={{
@@ -145,9 +45,9 @@ function App() {
                                 sx={{
                                     p: { xs: 1.5, sm: 2 },
                                     mb: { xs: 2, sm: 3 },
-                                    backgroundColor: 'grey.50',
+                                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'grey.50',
                                     border: '1px solid',
-                                    borderColor: 'grey.200'
+                                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'grey.200'
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -156,7 +56,8 @@ function App() {
                                         sx={{
                                             fontWeight: 500,
                                             fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                                            flexGrow: 1
+                                            flexGrow: 1,
+                                            color: isDark ? 'text.primary' : 'text.primary'
                                         }}
                                     >
                                         🔒 <strong>Privacy First:</strong> All files are processed locally and deleted immediately. No data is stored.{' '}
@@ -197,6 +98,14 @@ function App() {
                     <Footer />
                 </Box>
             </Router>
+        </MuiThemeProvider>
+    );
+}
+
+function App() {
+    return (
+        <ThemeProvider>
+            <AppContent />
         </ThemeProvider>
     );
 }
