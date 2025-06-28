@@ -189,7 +189,7 @@ const YouTubePlaylistDownloader = () => {
 
                     <List sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd', borderRadius: 1 }}>
                         {playlistInfo.videos.map((video, index) => (
-                            <ListItem key={video.id} dense button onClick={() => handleSelectVideo(video.id)}>
+                            <ListItem key={video.id} dense button={true.toString()} onClick={() => handleSelectVideo(video.id)}>
                                 <Checkbox
                                     edge="start"
                                     checked={selectedVideos.includes(video.id)}
