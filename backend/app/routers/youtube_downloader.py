@@ -250,6 +250,7 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
             playlist_info = ydl.extract_info(url, download=False)
         playlist_title = playlist_info.get("title", "playlist")
         sanitized_playlist_title = re.sub(r'[\\/:*?"<>|]', "", playlist_title)
+        sanitized_playlist_title = secure_filename(sanitized_playlist_title)
         logging.info(
             f"Playlist title: '{sanitized_playlist_title}' for job_id: {job_id}"
         )
