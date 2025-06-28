@@ -62,11 +62,11 @@ const tools = [
     {
         id: 'youtube-downloader',
         title: 'YouTube Downloader',
-        description: 'Download YouTube videos as MP3 or MP4 files.',
+        description: 'Download YouTube videos as MP3 or MP4 files. \n Supports playlists and individual videos.',
         icon: YouTube,
         path: '/youtube-downloader',
         status: 'available',
-        features: ['MP3 Audio', 'MP4 Video', 'Multiple Resolutions']
+        features: ['MP3 Audio', 'MP4 Video', 'MP3-Playlist']
     },
     {
         id: 'mocking-text',
