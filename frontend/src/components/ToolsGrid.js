@@ -21,7 +21,8 @@ import {
     YouTube,
     CompareArrows,
     QrCode,
-    TextFields
+    TextFields,
+    SentimentVerySatisfied
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -124,6 +125,17 @@ const tools = [
         status: 'coming-soon',
         features: ['Side-by-Side View', 'Inline View', 'Syntax Highlighting'],
         category: 'Developer Tools',
+        popularity: 0
+    },
+    {
+        id: 'meme-generator',
+        title: 'Meme Generator',
+        description: 'Create popular memes with your own text and images.',
+        icon: SentimentVerySatisfied,
+        path: '/meme-generator',
+        status: 'coming-soon',
+        features: ['Popular Templates', 'Custom Text', 'Image Upload'],
+        category: 'Fun',
         popularity: 0
     }
 ];

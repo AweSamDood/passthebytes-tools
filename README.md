@@ -36,7 +36,7 @@ This project uses GitHub Actions for a full CI/CD workflow on pushes to `main`:
 
 - **Converters:** PNG/JPG to PDF, Image Format Converter (PNG, JPEG, WEBP, ICO)
 - **Downloaders:** YouTube Video/Playlist Downloader (MP4, MP3)
-- **Generators:** Password Generator, QR Code Generator
+- **Generators:** Password Generator, QR Code Generator, Meme Generator (coming soon)
 - **Text Tools:** Mocking Text Generator
 
 ## Local Development
