@@ -127,14 +127,10 @@ const YouTubePlaylistDownloader = () => {
         }
     };
 
-    const handleDownloadZip = () => {
+    const handleDownloadZip = async () => {
         if (zipPath) {
-            const link = document.createElement('a');
-            link.href = `${API_BASE_URL}/api/youtube/download-zip/${zipPath}`;
-            link.download = zipPath;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const downloadUrl = `${API_BASE_URL}/api/youtube/download-zip/?filename=${encodeURIComponent(zipPath)}`;
+            window.location.href = downloadUrl;
         }
     };
 
