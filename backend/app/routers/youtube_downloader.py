@@ -378,8 +378,8 @@ async def download_zip(
         logging.error(f"Zip file not found at path: {zip_path}")
         raise HTTPException(status_code=404, detail="Zip file not found.")
 
-    progress_file_name = zip_name.replace(".zip", "_progress.json")
-    progress_file_path = os.path.join("temp_downloads", progress_file_name)
+    # progress_file_name = zip_name.replace(".zip", "_progress.json")
+    # progress_file_path = os.path.join("temp_downloads", progress_file_name)
 
     # background_tasks.add_task(remove_file, zip_path)
     # background_tasks.add_task(remove_file, progress_file_path)
