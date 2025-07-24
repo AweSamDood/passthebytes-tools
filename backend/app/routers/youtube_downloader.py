@@ -33,9 +33,9 @@ class PlaylistDownloadModel(BaseModel):
     video_ids: list[str]
 
 
-def remove_file(path: str):
-    if os.path.exists(path):
-        os.unlink(path)
+# def remove_file(path: str):
+#     if os.path.exists(path):
+#         os.unlink(path)
 
 
 def remove_dir(path: str):
@@ -124,7 +124,7 @@ async def download_file(
     file_name_for_client = f"{sanitized_title}.{file_format}"
     media_type = "audio/mpeg" if file_format == "mp3" else "video/mp4"
 
-    background_tasks.add_task(remove_file, downloaded_file_path)
+    # background_tasks.add_task(remove_file, downloaded_file_path)
 
     return FileResponse(
         path=downloaded_file_path, media_type=media_type, filename=file_name_for_client
@@ -291,7 +291,7 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
                 {"status": "zipping", "current": total_videos, "total": total_videos}, f
             )
 
-        zip_filename = f"{sanitized_playlist_title}.zip"
+        zip_filename = f"{sanitized_playlist_title}_{job_id}.zip"
         zip_path = os.path.join("temp_downloads", zip_filename)
         with zipfile.ZipFile(zip_path, "w") as zipf:
             for root, _, files in os.walk(temp_dir):
@@ -381,6 +381,6 @@ async def download_zip(
     progress_file_name = zip_name.replace(".zip", "_progress.json")
     progress_file_path = os.path.join("temp_downloads", progress_file_name)
 
-    background_tasks.add_task(remove_file, zip_path)
-    background_tasks.add_task(remove_file, progress_file_path)
+    # background_tasks.add_task(remove_file, zip_path)
+    # background_tasks.add_task(remove_file, progress_file_path)
     return FileResponse(path=zip_path, media_type="application/zip", filename=zip_name)
