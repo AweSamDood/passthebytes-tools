@@ -130,7 +130,7 @@ const YouTubePlaylistDownloader = () => {
     const handleDownloadZip = () => {
         if (zipPath) {
             const link = document.createElement('a');
-            link.href = `${API_BASE_URL}/api/youtube-downloader/download-zip/${zipPath}`;
+            link.href = `${API_BASE_URL}/api/youtube/download-zip/${zipPath}`;
             link.download = zipPath;
             document.body.appendChild(link);
             link.click();
