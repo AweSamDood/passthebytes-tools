@@ -54,10 +54,15 @@ if [ "$ENVIRONMENT" = "production" ]; then
   echo "Deploying production environment..."
 
   # Stop existing containers
-  docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME down || true
+  docker compose -f docker-compose.prod.yml -p $PROJECT_NAME down || true
 
-  # Build and start containers
-  docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME up --build -d
+  # Build containers
+  echo "Building containers..."
+  docker compose -f docker-compose.prod.yml -p $PROJECT_NAME build
+
+  # Start containers
+  echo "Starting containers..."
+  docker compose -f docker-compose.prod.yml -p $PROJECT_NAME up -d
 
   # Setup NGINX configuration using existing script, if requested
   if [ "$RECONFIGURE_NGINX" = true ] ; then
@@ -77,10 +82,15 @@ else
   echo "Starting development environment..."
 
   # Stop existing containers
-  docker-compose -p $PROJECT_NAME down || true
+  docker compose -p $PROJECT_NAME down || true
 
-  # Build and start containers
-  docker-compose -p $PROJECT_NAME up --build -d
+  # Build containers
+  echo "Building containers..."
+  docker compose -p $PROJECT_NAME build
+
+  # Start containers
+  echo "Starting containers..."
+  docker compose -p $PROJECT_NAME up -d
 
   echo "Development environment started:"
   echo "Frontend: http://localhost:3030"
@@ -103,7 +113,7 @@ if [ "$ENVIRONMENT" = "production" ]; then
   else
     echo "❌ Backend health check failed. This is likely the cause of 502 errors."
     echo "Dumping latest backend logs for inspection:"
-    docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 backend
+    docker compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 backend
   fi
 
   if curl -fsS http://localhost:3031 > /dev/null; then
@@ -111,7 +121,7 @@ if [ "$ENVIRONMENT" = "production" ]; then
   else
     echo "❌ Frontend health check failed"
     echo "Dumping latest frontend logs for inspection:"
-    docker-compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 frontend
+    docker compose -f docker-compose.prod.yml -p $PROJECT_NAME logs --tail=100 frontend
   fi
 else
   # In development, we check the mapped localhost ports
