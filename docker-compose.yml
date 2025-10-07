@@ -30,3 +30,4 @@ services:
 
 volumes:
   backend_uploads:
+
