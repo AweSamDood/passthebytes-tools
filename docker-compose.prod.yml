@@ -33,6 +33,8 @@ services:
 
 volumes:
   backend_uploads:
+    external: true
+    name: passthebytes-tools_backend_uploads
 
 networks:
   tools-network:
