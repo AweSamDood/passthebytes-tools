@@ -2,7 +2,7 @@ fastapi==0.115.6
 uvicorn[standard]==0.32.1
 python-multipart==0.0.18
 Pillow==11.0.0
-pypdf==6.0.0
+pypdf==6.6.0
 ocrmypdf==16.10.2
 python-dotenv==1.0.1
 pillow-avif-plugin==1.4.2
