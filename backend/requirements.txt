@@ -12,4 +12,4 @@ yt-dlp
 apscheduler
 pytest
 httpx
-werkzeug==3.1.3
+werkzeug==3.1.5
