@@ -13,6 +13,16 @@ from fastapi.responses import FileResponse
 from PIL import Image
 from starlette.background import BackgroundTask
 
+import re  # For filename validation
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize user-provided filename to prevent command injection."""
+    # Allow only alphanumeric characters, underscores, hyphens, and periods
+    sanitized = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+    if not sanitized or sanitized.startswith("."):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    return sanitized
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -142,6 +152,8 @@ async def convert_png_to_pdf(
     files: List[UploadFile] = File(...),
     dpi: int = Form(300),
     filename: str = Form("converted_document"),
+    # Validate and sanitize filename
+    filename = sanitize_filename(filename)
 ):
     """Convert multiple PNG/JPG files to a single PDF"""
 
