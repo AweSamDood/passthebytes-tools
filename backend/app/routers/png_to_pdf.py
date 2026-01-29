@@ -164,6 +164,24 @@ async def convert_png_to_pdf(
     if not 72 <= dpi <= 600:
         raise HTTPException(status_code=400, detail="DPI must be between 72 and 600")
 
+    # Sanitize filename immediately upon receiving user input
+    sanitized_filename = sanitize_filename(filename)
+    
+    # Ensure filename has .pdf extension for output to user
+    user_output_filename = (
+        f"{sanitized_filename}.pdf" if not sanitized_filename.endswith(".pdf") else sanitized_filename
+    )
+    
+    # Create backend filename with UUID to prevent collisions
+    # Extract name without extension
+    if user_output_filename.endswith(".pdf"):
+        base_name = user_output_filename[:-4]
+    else:
+        base_name = user_output_filename
+    
+    # Append UUID for backend storage
+    backend_filename = f"{base_name}_{uuid.uuid4()}.pdf"
+
     # Create temporary directory for this conversion,
     # which will be cleaned up by a background task
     temp_dir = tempfile.mkdtemp()
@@ -180,20 +198,17 @@ async def convert_png_to_pdf(
             file_path = save_uploaded_file(file, temp_dir)
             image_paths.append(file_path)
 
-        # Generate output filename with sanitization to prevent path traversal
-        sanitized_filename = sanitize_filename(filename)
-        output_filename = (
-            f"{sanitized_filename}.pdf" if not sanitized_filename.endswith(".pdf") else sanitized_filename
-        )
-        output_path = os.path.join(temp_dir, output_filename)
+        # Save with backend filename (includes UUID)
+        output_path = os.path.join(temp_dir, backend_filename)
 
         # Convert to PDF
         convert_images_to_pdf(image_paths, output_path, dpi)
 
-        # Return the PDF file with a background task to clean up the temp directory
+        # Return the PDF file with user-facing filename (without UUID)
+        # The actual file stored has UUID, but user sees clean name
         return FileResponse(
             path=output_path,
-            filename=output_filename,
+            filename=user_output_filename,
             media_type="application/pdf",
             background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True),
         )
