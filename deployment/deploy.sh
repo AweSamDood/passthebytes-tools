@@ -52,13 +52,28 @@ fi
 # Build and deploy based on environment
 if [ "$ENVIRONMENT" = "production" ]; then
   echo "Deploying production environment..."
+  
+  # Read version from VERSION file if it exists
+  if [ -f VERSION ]; then
+    VERSION=$(cat VERSION)
+    export VERSION
+    echo "📦 Deploying version: $VERSION"
+  else
+    echo "⚠️  VERSION file not found, using latest"
+    export VERSION="latest"
+  fi
 
   # Stop existing containers
   docker compose -f docker-compose.prod.yml -p $PROJECT_NAME down || true
 
-  # Build containers
-  echo "Building containers..."
-  docker compose -f docker-compose.prod.yml -p $PROJECT_NAME build
+  # Try to pull versioned images, fall back to building if not available
+  echo "Attempting to pull images for version $VERSION..."
+  if docker compose -f docker-compose.prod.yml -p $PROJECT_NAME pull 2>/dev/null; then
+    echo "✅ Images pulled successfully"
+  else
+    echo "⚠️  Could not pull images, building locally..."
+    docker compose -f docker-compose.prod.yml -p $PROJECT_NAME build
+  fi
 
   # Start containers
   echo "Starting containers..."

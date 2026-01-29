@@ -27,10 +27,13 @@ I'm planning to introduce a database to gather anonymous usage statistics. This 
 
 ## CI/CD Pipeline
 
-This project uses GitHub Actions for a full CI/CD workflow on pushes to `main`:
+This project uses GitHub Actions for a full CI/CD workflow with automated versioning:
 
 - **CI:** Lints and tests the code using `pytest`, `black`, `isort`, `flake8`, `safety`, and `bandit`.
-- **CD:** Deploys to a self-hosted runner, syncs the code, runs the deployment script (`deployment/deploy.sh`), and performs health checks.
+- **Versioning:** Automatically bumps version based on conventional commits (`feat:` for minor, `fix:` for patch).
+- **CD:** Builds versioned Docker images and deploys to production with health checks.
+
+See [VERSIONING.md](VERSIONING.md) for detailed information about the versioning and deployment system.
 
 ## Available Tools
 

@@ -1,19 +1,23 @@
-name: Deploy to Production
+name: Manual Deploy to Production
 
 on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:  # Allow manual deployment
+  workflow_dispatch:  # Manual deployment only
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., 1.0.0) or leave empty for latest'
+        required: false
+        type: string
 
 jobs:
   deploy:
     runs-on: self-hosted
     environment: production
-    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
 
       - name: Verify project directory exists
         run: |
