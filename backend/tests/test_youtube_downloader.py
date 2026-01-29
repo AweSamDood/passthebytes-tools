@@ -118,15 +118,17 @@ class TestYoutubeDownloaderEndpoints:
         assert "Zip file not found" in response.json()["detail"]
 
     def test_download_zip_path_traversal_protection(self):
-        """Test that download zip endpoint blocks path traversal attempts"""
+        """Test that download zip endpoint sanitizes path traversal attempts"""
         from fastapi.testclient import TestClient
         from app.main import app
 
         client = TestClient(app)
-        # Attempt path traversal
+        # Attempt path traversal - the sanitization functions strip path separators,
+        # converting "../../../etc/passwd" to a safe filename like "etc_passwd"
         response = client.get(
             "/api/youtube/download-zip/?filename=../../../etc/passwd"
         )
-        # Should sanitize to a safe filename, then return 404 since file doesn't exist
-        # The important thing is it doesn't return 403 for legitimate files
-        assert response.status_code in [403, 404]
+        # After sanitization, the malicious path becomes a safe filename within temp_downloads
+        # Since that file doesn't exist, we get 404
+        assert response.status_code == 404
+        assert "Zip file not found" in response.json()["detail"]
