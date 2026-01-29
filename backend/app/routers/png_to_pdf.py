@@ -8,9 +8,11 @@ import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from starlette.background import BackgroundTask
 
 from app.utils import sanitize_filename
@@ -20,6 +22,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
@@ -140,7 +145,9 @@ def merge_pdfs(pdf_files: List[str], output_path: str):
 
 
 @router.post("/convert")
+@limiter.limit("10/minute")
 async def convert_png_to_pdf(
+    request: Request,
     files: List[UploadFile] = File(...),
     dpi: int = Form(300),
     filename: str = Form("converted_document"),

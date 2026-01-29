@@ -8,9 +8,11 @@ import zipfile
 from shutil import rmtree
 
 import yt_dlp
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from werkzeug.utils import secure_filename
 
 from app.utils import sanitize_filename
@@ -24,6 +26,9 @@ logging.basicConfig(
 )
 
 router = APIRouter()
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 
 class URLModel(BaseModel):
@@ -46,7 +51,8 @@ def remove_dir(path: str):
 
 
 @router.post("/info")
-async def get_info(url_model: URLModel):
+@limiter.limit("30/minute")
+async def get_info(request: Request, url_model: URLModel):
     ydl_opts = {"noplaylist": True}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -57,7 +63,9 @@ async def get_info(url_model: URLModel):
 
 
 @router.post("/download/{file_format}")
+@limiter.limit("5/minute")
 async def download_file(
+    request: Request,
     file_format: str, url_model: URLModel, background_tasks: BackgroundTasks
 ):
     if file_format not in ["mp3", "mp4"]:
@@ -134,7 +142,8 @@ async def download_file(
 
 
 @router.post("/playlist-info")
-async def get_playlist_info(url_model: URLModel):
+@limiter.limit("20/minute")
+async def get_playlist_info(request: Request, url_model: URLModel):
     logging.info(f"Fetching playlist info for URL: {url_model.url}")
 
     ydl_opts = {
@@ -319,8 +328,10 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
 
 
 @router.post("/download-playlist")
+@limiter.limit("3/hour")
 async def download_playlist(
-    request: PlaylistDownloadModel, background_tasks: BackgroundTasks
+    request: Request,
+    request_body: PlaylistDownloadModel, background_tasks: BackgroundTasks
 ):
     job_id = str(uuid.uuid4())
     logging.info(f"Creating download job with job_id: {job_id}")
@@ -332,11 +343,11 @@ async def download_playlist(
     # Create the progress file immediately with an initializing state
     with open(progress_file, "w") as f:
         json.dump(
-            {"status": "initializing", "current": 0, "total": len(request.video_ids)}, f
+            {"status": "initializing", "current": 0, "total": len(request_body.video_ids)}, f
         )
 
     background_tasks.add_task(
-        do_playlist_download, request.url, request.video_ids, job_id
+        do_playlist_download, request_body.url, request_body.video_ids, job_id
     )
     return JSONResponse({"job_id": job_id})
 
@@ -366,7 +377,9 @@ async def get_playlist_download_progress(job_id: str):
 
 
 @router.get("/download-zip/")
+@limiter.limit("10/minute")
 async def download_zip(
+    request: Request,
     zip_name: str = Query(..., alias="filename"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
