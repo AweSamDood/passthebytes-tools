@@ -7,6 +7,7 @@ import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from shutil import rmtree
+from threading import Lock
 
 import yt_dlp
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
@@ -46,11 +47,12 @@ def calculate_thread_count(video_count: int) -> int:
     Calculate the number of threads to use based on video count.
     Uses logarithmic scaling with a maximum of 10 threads.
 
-    <=1 video: 1 thread
-    <=2 videos: 2 threads
-    <=4 videos: 3 threads
-    <=8 videos: 4 threads
-    and so on, with a maximum of 10 threads
+    Examples:
+    - 1 video: 1 thread
+    - 2-3 videos: 2 threads
+    - 4-7 videos: 3 threads
+    - 8-15 videos: 4 threads
+    - Maximum: 10 threads
     """
     if video_count <= 0:
         return 1
@@ -305,6 +307,7 @@ async def get_playlist_info(url_model: URLModel):
 def do_playlist_download(url: str, video_ids: list[str], job_id: str):
     logging.info(f"Starting playlist download for job_id: {job_id}")
     progress_file = os.path.join("temp_downloads", f"{job_id}_progress.json")
+    progress_lock = Lock()  # Lock for thread-safe progress file writes
 
     if len(video_ids) > 50:
         logging.error(
@@ -372,24 +375,56 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
                         f"Failed to download {result['video_id']}: {result.get('error', 'Unknown error')}"
                     )
 
-                # Update progress file
-                with open(progress_file, "w") as f:
-                    json.dump(
-                        {
-                            "status": "processing",
-                            "current": completed,
-                            "total": total_videos,
-                            "successful": len(successful_videos),
-                            "failed": len(failed_videos),
-                        },
-                        f,
-                    )
+                # Update progress file with thread-safe lock
+                with progress_lock:
+                    with open(progress_file, "w") as f:
+                        json.dump(
+                            {
+                                "status": "processing",
+                                "current": completed,
+                                "total": total_videos,
+                                "successful": len(successful_videos),
+                                "failed": len(failed_videos),
+                            },
+                            f,
+                        )
 
         # Log summary
         logging.info(
             f"Download complete for job_id: {job_id}. "
             f"Successful: {len(successful_videos)}, Failed: {len(failed_videos)}"
         )
+
+        # Check if we have any successful downloads
+        if len(successful_videos) == 0:
+            error_msg = (
+                "All videos failed to download. "
+                f"Total attempted: {total_videos}, Failed: {len(failed_videos)}"
+            )
+            logging.error(f"Job {job_id}: {error_msg}")
+
+            final_status = {
+                "status": "error",
+                "message": error_msg,
+                "total": total_videos,
+                "successful": 0,
+                "failed": len(failed_videos),
+                "failed_videos": [
+                    {
+                        "video_id": v["video_id"],
+                        "title": v.get("title", "Unknown"),
+                        "error": v.get("error", "Unknown error"),
+                    }
+                    for v in failed_videos
+                ],
+            }
+
+            with open(progress_file, "w") as f:
+                json.dump(final_status, f)
+
+            # Clean up temp directory
+            rmtree(temp_dir)
+            return
 
         # Zip the successfully downloaded files
         logging.info(f"Zipping files for job_id: {job_id}")

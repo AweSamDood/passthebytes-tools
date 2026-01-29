@@ -50,7 +50,8 @@ def cleanup_temporary_files():
             except Exception as e:
                 print(f"Error deleting file {file_path}: {e}")
 
-        # Second pass: check directory size and delete oldest files if needed
+        # Second pass: recalculate directory size after old file deletion
+        # and delete oldest files if size exceeds limit
         try:
             dir_size_bytes = get_directory_size(path)
             dir_size_gb = dir_size_bytes / (1024**3)
