@@ -32,7 +32,7 @@ jobs:
         run: |
           PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
           cd "$PROJECT_PATH"
-          
+
           # Verify we're in the right directory
           if [ ! -f "deployment/deploy.sh" ]; then
             echo "❌ Error: Not in the correct project directory"
@@ -40,15 +40,15 @@ jobs:
             ls -la
             exit 1
           fi
-          
+
           echo "📁 Current working directory: $(pwd)"
           echo "📦 Syncing code from GitHub Actions workspace..."
-          
+
           # Create a backup of current state before syncing
           if [ -d ".git" ]; then
             echo "📋 Current commit: $(git rev-parse HEAD)"
           fi
-          
+
           # Sync the checked-out code (preserve .git and other important files)
           rsync -av \
             --exclude='.git/' \
@@ -56,19 +56,19 @@ jobs:
             --exclude='backend/uploads/' \
             --exclude='deployments/' \
             "$GITHUB_WORKSPACE/" ./
-          
+
           echo "✅ Code synced successfully"
 
       - name: Run deployment script
         run: |
           PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
           cd "$PROJECT_PATH"
-          
+
           echo "🚀 Starting deployment..."
-          
+
           # Make sure deploy script is executable
           chmod +x deployment/deploy.sh
-          
+
           # Run deployment script
           ./deployment/deploy.sh production
 
@@ -76,9 +76,9 @@ jobs:
         run: |
           echo "⏳ Waiting for services to stabilize..."
           sleep 15
-          
+
           echo "🔍 Running health checks..."
-          
+
           # Check backend health
           if curl -f http://localhost:3031/health > /dev/null 2>&1; then
             echo "✅ Backend health check passed"
@@ -86,7 +86,7 @@ jobs:
             echo "❌ Backend health check failed"
             exit 1
           fi
-          
+
           # Check frontend accessibility
           if curl -f http://localhost:3031 > /dev/null 2>&1; then
             echo "✅ Frontend accessibility check passed"
@@ -94,7 +94,7 @@ jobs:
             echo "❌ Frontend accessibility check failed"
             exit 1
           fi
-          
+
           echo "🎉 Deployment completed successfully!"
 
       - name: Log deployment info
@@ -102,10 +102,10 @@ jobs:
         run: |
           PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
           cd "$PROJECT_PATH"
-          
+
           # Create deployments directory if it doesn't exist
           mkdir -p deployments
-          
+
           # Log deployment status
           if [ "${{ job.status }}" = "success" ]; then
             echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ Deployment successful (commit: ${{ github.sha }})" >> deployments/deployment.log
