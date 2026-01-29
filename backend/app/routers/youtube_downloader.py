@@ -10,7 +10,7 @@ from shutil import rmtree
 import yt_dlp
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from werkzeug.utils import secure_filename
@@ -33,11 +33,48 @@ limiter = Limiter(key_func=get_remote_address)
 
 class URLModel(BaseModel):
     url: str
+    
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate YouTube URL."""
+        if not v or not isinstance(v, str):
+            raise ValueError("URL is required")
+        if len(v) > 2048:
+            raise ValueError("URL too long (max 2048 characters)")
+        # Check for YouTube domain
+        if not any(domain in v.lower() for domain in ["youtube.com", "youtu.be"]):
+            raise ValueError("URL must be a YouTube link")
+        return v
 
 
 class PlaylistDownloadModel(BaseModel):
     url: str
     video_ids: list[str]
+    
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate YouTube URL."""
+        if not v or not isinstance(v, str):
+            raise ValueError("URL is required")
+        if len(v) > 2048:
+            raise ValueError("URL too long (max 2048 characters)")
+        return v
+    
+    @field_validator("video_ids")
+    @classmethod
+    def validate_video_ids(cls, v: list[str]) -> list[str]:
+        """Validate video IDs list."""
+        if not v:
+            raise ValueError("At least one video ID is required")
+        if len(v) > 50:
+            raise ValueError("Cannot download more than 50 videos at a time")
+        # Validate each video ID format (YouTube video IDs are 11 characters)
+        for video_id in v:
+            if not re.match(r'^[a-zA-Z0-9_-]{11}$', video_id):
+                raise ValueError(f"Invalid video ID format: {video_id}")
+        return v
 
 
 # def remove_file(path: str):
