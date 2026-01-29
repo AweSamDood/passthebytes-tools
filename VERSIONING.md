@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses **Semantic Versioning** (SemVer) with automated version bumping based on **Conventional Commits**. The versioning system is integrated with GitHub Actions for automated releases and deployments.
+This project uses **Semantic Versioning** (SemVer) with automated version bumping based on **Conventional Commits**. The versioning system is integrated with GitHub Actions and works seamlessly with protected branches by creating pull requests for version bumps.
 
 ## Version Format
 
@@ -50,26 +50,52 @@ These don't trigger releases but are good practice:
 
 ### Automatic Release Workflow
 
-1. **Push to main with conventional commit**
+The workflow has been designed to work with protected branches by using pull requests:
+
+1. **Push conventional commit to main (or any branch that gets merged to main)**
    ```bash
    git commit -m "feat: add new tool"
    git push origin main
    ```
 
-2. **GitHub Actions workflow triggers:**
-   - Analyzes commit messages since last tag
-   - Determines version bump type (major/minor/patch)
-   - Updates `VERSION` file
-   - Creates git tag (e.g., `v1.2.3`)
+2. **GitHub Actions workflow automatically:**
+   - Detects the conventional commit
+   - Calculates the new version based on commit type
+   - Creates a new branch `release/vX.Y.Z`
+   - Updates the `VERSION` file
+   - Creates a pull request to main
+   - Attempts to enable auto-merge (if repository settings allow)
+
+3. **After the version bump PR is merged:**
+   - Workflow automatically creates git tag (e.g., `v1.2.3`)
    - Builds and pushes versioned Docker images
    - Creates GitHub Release with changelog
    - Deploys to production
 
-3. **Docker images are tagged:**
+4. **Docker images are tagged:**
    - `ghcr.io/awesamdood/passthebytes-tools/backend:v1.2.3`
    - `ghcr.io/awesamdood/passthebytes-tools/backend:latest`
    - `ghcr.io/awesamdood/passthebytes-tools/frontend:v1.2.3`
    - `ghcr.io/awesamdood/passthebytes-tools/frontend:latest`
+
+### Protected Branches
+
+This workflow is designed to work with protected branches:
+
+- Version bumps are done via pull requests, not direct pushes
+- The bot creates PRs that can be reviewed before merging
+- Auto-merge can be enabled in repository settings to streamline the process
+- No special tokens or bypass permissions needed
+
+### Enabling Auto-Merge (Optional)
+
+To enable automatic merging of version bump PRs:
+
+1. Go to **Settings** → **Branches** in your repository
+2. Edit the branch protection rule for `main`
+3. Enable "Allow auto-merge"
+4. Configure required status checks as needed
+5. The workflow will automatically enable auto-merge on version bump PRs
 
 ## Manual Version Bumping
 

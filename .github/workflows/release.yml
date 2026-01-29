@@ -3,6 +3,9 @@ name: Release and Deploy
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    types: [ closed ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       bump_type:
@@ -19,45 +22,79 @@ on:
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 jobs:
-  # Version bumping and tagging
-  version:
+  # Determine if we need to create a version bump PR or proceed with release
+  check-action:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.bump.outputs.version }}
-      bump_type: ${{ steps.bump.outputs.bump_type }}
-      should_release: ${{ steps.check.outputs.should_release }}
-
+      action: ${{ steps.determine.outputs.action }}
+      version: ${{ steps.determine.outputs.version }}
+      bump_type: ${{ steps.determine.outputs.bump_type }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for version detection
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Check if should create release
-        id: check
+      - name: Determine action
+        id: determine
         run: |
-          # Always create release on manual trigger
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "✅ Manual trigger - will create release"
+          # Check if this is a merged PR with version bump
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ github.event.pull_request.merged }}" = "true" ] && \
+             [ "${{ github.event.pull_request.head.ref }}" != "" ] && \
+             echo "${{ github.event.pull_request.head.ref }}" | grep -q "^release/v"; then
+            echo "action=release" >> $GITHUB_OUTPUT
+            VERSION=$(cat VERSION | xargs)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "bump_type=automated" >> $GITHUB_OUTPUT
+            echo "✅ Version bump PR merged - proceeding with release"
             exit 0
           fi
 
-          # Check for conventional commit patterns in recent commits
-          if git log -1 --pretty=format:"%s" | grep -qE "^(feat|fix|perf|refactor)(\(.+\))?:"; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "✅ Conventional commit detected - will create release"
-          else
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No conventional commit detected - skipping release"
+          # Check if this is the version bump commit itself (skip to avoid loops)
+          if git log -1 --pretty=format:"%s" | grep -q "^chore: bump version to"; then
+            echo "action=skip" >> $GITHUB_OUTPUT
+            echo "ℹ️ Version bump commit detected - skipping to avoid loops"
+            exit 0
           fi
+
+          # Check if this is a manual workflow dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=bump" >> $GITHUB_OUTPUT
+            echo "✅ Manual trigger - will create version bump"
+            exit 0
+          fi
+
+          # Check for conventional commit patterns in recent push
+          if [ "${{ github.event_name }}" = "push" ] && \
+             git log -1 --pretty=format:"%s" | grep -qE "^(feat|fix|perf|refactor)(\(.+\))?:"; then
+            echo "action=bump" >> $GITHUB_OUTPUT
+            echo "✅ Conventional commit detected - will create version bump PR"
+            exit 0
+          fi
+
+          echo "action=skip" >> $GITHUB_OUTPUT
+          echo "ℹ️ No action needed"
+
+  # Create version bump PR
+  create-version-pr:
+    runs-on: ubuntu-latest
+    needs: check-action
+    if: needs.check-action.outputs.action == 'bump'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump version
         id: bump
-        if: steps.check.outputs.should_release == 'true'
         run: |
           chmod +x .github/scripts/bump-version.sh
 
@@ -70,17 +107,84 @@ jobs:
           # Run version bump script
           ./.github/scripts/bump-version.sh $BUMP_ARG
 
-      - name: Commit version bump
-        if: steps.check.outputs.should_release == 'true'
+      - name: Create version bump PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(cat VERSION)
+          VERSION=$(cat VERSION | xargs)
+          BRANCH_NAME="release/v$VERSION"
+          
+          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if branch already exists
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" > /dev/null 2>&1; then
+            echo "⚠️ Branch $BRANCH_NAME already exists, skipping PR creation"
+            exit 0
+          fi
+          
+          # Create and push version bump branch
+          git checkout -b "$BRANCH_NAME"
           git add VERSION
           git commit -m "chore: bump version to $VERSION"
+          git push origin "$BRANCH_NAME"
+          
+          # Create pull request body
+          cat > /tmp/pr_body.md << 'EOF'
+          ## Automated Version Bump
+          
+          This PR was automatically created by the Release workflow based on conventional commits.
+          
+          ### What happens after merge:
+          - ✅ Git tag will be created
+          - ✅ Versioned Docker images will be built and pushed
+          - ✅ GitHub Release will be created with changelog
+          - ✅ Deployment to production will be triggered
+          
+          **This PR can be automatically merged if branch protection allows it.**
+          EOF
+          
+          # Create pull request
+          PR_URL=$(gh pr create \
+            --title "chore: release v$VERSION" \
+            --body-file /tmp/pr_body.md \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --label "release")
+          
+          echo "✅ Created PR: $PR_URL"
+          
+          # Try to enable auto-merge (may fail if not configured in repo settings)
+          gh pr merge "$PR_URL" --auto --squash || echo "⚠️ Could not enable auto-merge (check repository settings)"
+
+  # Version tagging (runs after PR is merged)
+  create-tag:
+    runs-on: ubuntu-latest
+    needs: check-action
+    if: needs.check-action.outputs.action == 'release'
+    outputs:
+      version: ${{ needs.check-action.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ needs.check-action.outputs.version }}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create annotated tag
           git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin HEAD:${{ github.ref_name }}
           git push origin "v$VERSION"
+          
+          echo "✅ Created and pushed tag v$VERSION"
           
           # Wait for tag to be available
           echo "⏳ Waiting for tag to sync..."
@@ -89,8 +193,7 @@ jobs:
   # Build and push versioned Docker images
   build-versioned-images:
     runs-on: ubuntu-latest
-    needs: version
-    if: needs.version.outputs.should_release == 'true'
+    needs: create-tag
     strategy:
       matrix:
         service: [backend, frontend]
@@ -99,7 +202,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: v${{ needs.version.outputs.version }}
+          ref: v${{ needs.create-tag.outputs.version }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -122,7 +225,7 @@ jobs:
           file: ./${{ matrix.service }}/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.repo.outputs.name }}/${{ matrix.service }}:v${{ needs.version.outputs.version }}
+            ghcr.io/${{ steps.repo.outputs.name }}/${{ matrix.service }}:v${{ needs.create-tag.outputs.version }}
             ghcr.io/${{ steps.repo.outputs.name }}/${{ matrix.service }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
@@ -131,20 +234,19 @@ jobs:
   # Create GitHub Release
   create-release:
     runs-on: ubuntu-latest
-    needs: [version, build-versioned-images]
-    if: needs.version.outputs.should_release == 'true'
+    needs: [create-tag, build-versioned-images]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: v${{ needs.version.outputs.version }}
+          ref: v${{ needs.create-tag.outputs.version }}
 
       - name: Generate changelog
         id: changelog
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
+          VERSION="${{ needs.create-tag.outputs.version }}"
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
@@ -166,12 +268,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: Release v${{ needs.version.outputs.version }}
+          tag_name: v${{ needs.create-tag.outputs.version }}
+          name: Release v${{ needs.create-tag.outputs.version }}
           body: |
-            ## Release v${{ needs.version.outputs.version }}
-
-            **Version bump type:** ${{ needs.version.outputs.bump_type }}
+            ## Release v${{ needs.create-tag.outputs.version }}
 
             ${{ steps.changelog.outputs.changelog }}
 
@@ -179,8 +279,8 @@ jobs:
 
             ```bash
             # Pull the images
-            docker pull ghcr.io/${{ github.repository }}/backend:v${{ needs.version.outputs.version }}
-            docker pull ghcr.io/${{ github.repository }}/frontend:v${{ needs.version.outputs.version }}
+            docker pull ghcr.io/${{ github.repository }}/backend:v${{ needs.create-tag.outputs.version }}
+            docker pull ghcr.io/${{ github.repository }}/frontend:v${{ needs.create-tag.outputs.version }}
             ```
           draft: false
           prerelease: false
@@ -188,15 +288,14 @@ jobs:
   # Deploy to production
   deploy:
     runs-on: self-hosted
-    needs: [version, build-versioned-images]
-    if: needs.version.outputs.should_release == 'true'
+    needs: [create-tag, build-versioned-images]
     environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: v${{ needs.version.outputs.version }}
+          ref: v${{ needs.create-tag.outputs.version }}
 
       - name: Deploy versioned release
         run: |
@@ -204,7 +303,7 @@ jobs:
           cd "$PROJECT_PATH"
 
           # Update VERSION file
-          echo -n "${{ needs.version.outputs.version }}" > VERSION
+          echo -n "${{ needs.create-tag.outputs.version }}" > VERSION
 
           # Sync code
           rsync -av \
@@ -214,7 +313,7 @@ jobs:
             "$GITHUB_WORKSPACE/" ./
 
           # Set version in environment
-          export VERSION="${{ needs.version.outputs.version }}"
+          export VERSION="${{ needs.create-tag.outputs.version }}"
 
           # Run deployment
           chmod +x deployment/deploy.sh
@@ -226,7 +325,7 @@ jobs:
           sleep 15
 
           if curl -f http://localhost:3031/health > /dev/null 2>&1; then
-            echo "✅ Deployment v${{ needs.version.outputs.version }} successful"
+            echo "✅ Deployment v${{ needs.create-tag.outputs.version }} successful"
           else
             echo "❌ Deployment verification failed"
             exit 1
@@ -238,7 +337,7 @@ jobs:
           PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
 
           if [ "${{ job.status }}" = "success" ]; then
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ v${{ needs.version.outputs.version }} deployed successfully" | tee -a "$PROJECT_PATH/deployment.log"
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ v${{ needs.create-tag.outputs.version }} deployed successfully" | tee -a "$PROJECT_PATH/deployment.log"
           else
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - ❌ v${{ needs.version.outputs.version }} deployment failed" | tee -a "$PROJECT_PATH/deployment.log"
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ❌ v${{ needs.create-tag.outputs.version }} deployment failed" | tee -a "$PROJECT_PATH/deployment.log"
           fi
