@@ -13,24 +13,32 @@
 
 ### Security Improvements in This Implementation
 
-#### 1. Version Control Security
+#### 1. Protected Branch Compatibility
+- **PR-based version bumping**: Creates pull requests instead of direct pushes to protected branches
+- **No bypass permissions needed**: Works with standard GitHub Actions token
+- **Review opportunities**: Version bumps can be reviewed before merge
+- **Audit trail**: All version changes tracked through PRs and commits
+
+#### 2. Version Control Security
 - **VERSION file validation**: Added regex validation to prevent injection attacks via malformed version strings
 - **Input sanitization**: All version strings are trimmed and validated before use
 - **No arbitrary code execution**: Version bumps are deterministic based on commit messages
+- **Loop prevention**: Detects and skips version bump commits to prevent infinite loops
 
-#### 2. GitHub Actions Security
-- **Token permissions**: Minimal required permissions (contents: write, packages: write)
+#### 3. GitHub Actions Security
+- **Token permissions**: Minimal required permissions (contents: write, packages: write, pull-requests: write)
 - **No secret exposure**: All sensitive data uses GitHub secrets
 - **Secure checkout**: Uses official GitHub actions with pinned versions
 - **Tag verification**: Waits for tag synchronization to prevent race conditions
+- **Conditional execution**: Jobs only run when appropriate triggers are detected
 
-#### 3. Docker Image Security
+#### 4. Docker Image Security
 - **Registry authentication**: Uses GitHub token for secure image push/pull
 - **Image tagging**: Versioned tags prevent confusion attacks
 - **Pull-before-build**: Attempts to use verified registry images before local builds
 - **No embedded secrets**: Environment variables managed separately
 
-#### 4. Deployment Security
+#### 5. Deployment Security
 - **Version tracking**: Every deployment is logged with version and timestamp
 - **Rollback capability**: Can quickly revert to known-good versions
 - **Health checks**: Validates services before marking deployment successful
@@ -94,10 +102,12 @@
    - Set up alerts for failed deployments
    - Track unusual version patterns
 
-2. **Protect Main Branch**
-   - Require pull request reviews
-   - Enable branch protection rules
-   - Require status checks to pass
+2. **Enable branch protection rules:**
+   - Require pull request reviews (optional for automation)
+   - Require status checks to pass before merging
+   - Require up-to-date branches
+   - Enable "Allow auto-merge" for automated version bumps (optional)
+   - Set appropriate required reviewers if needed
 
 3. **Regular Updates**
    - Keep GitHub Actions up to date

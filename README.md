@@ -27,11 +27,11 @@ I'm planning to introduce a database to gather anonymous usage statistics. This 
 
 ## CI/CD Pipeline
 
-This project uses GitHub Actions for a full CI/CD workflow with automated versioning:
+This project uses GitHub Actions for a full CI/CD workflow with automated versioning that works seamlessly with protected branches:
 
 - **CI:** Lints and tests the code using `pytest`, `black`, `isort`, `flake8`, `safety`, and `bandit`.
-- **Versioning:** Automatically bumps version based on conventional commits (`feat:` for minor, `fix:` for patch).
-- **CD:** Builds versioned Docker images and deploys to production with health checks.
+- **Versioning:** Automatically creates version bump PRs based on conventional commits (`feat:` for minor, `fix:` for patch). PRs can be auto-merged when branch protection allows.
+- **CD:** Builds versioned Docker images and deploys to production with health checks after PR merge.
 
 See [VERSIONING.md](VERSIONING.md) for detailed information about the versioning and deployment system.
 
