@@ -600,7 +600,7 @@ async def download_zip(
     # secure_filename() provides additional werkzeug-specific protections
     sanitized_zip_name = sanitize_filename(zip_name)
     sanitized_zip_name = secure_filename(sanitized_zip_name)
-    zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
+    zip_path = os.path.abspath(os.path.normpath(os.path.join(base_path, sanitized_zip_name)))
     if not zip_path.startswith(os.path.abspath(base_path)):
         logging.error(f"Access to the specified file is forbidden: {zip_path}")
         raise HTTPException(
