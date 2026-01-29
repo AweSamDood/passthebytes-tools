@@ -55,7 +55,7 @@ if [ "$ENVIRONMENT" = "production" ]; then
   
   # Read version from VERSION file if it exists
   if [ -f VERSION ]; then
-    VERSION=$(cat VERSION)
+    VERSION=$(cat VERSION | xargs)
     export VERSION
     echo "📦 Deploying version: $VERSION"
   else

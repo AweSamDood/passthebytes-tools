@@ -66,6 +66,13 @@ jobs:
 
           echo "🚀 Starting deployment..."
 
+          # Set VERSION if provided, otherwise use what's in VERSION file
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            export VERSION="${{ github.event.inputs.version }}"
+            echo -n "$VERSION" > VERSION
+            echo "📦 Deploying version: $VERSION"
+          fi
+
           # Make sure deploy script is executable
           chmod +x deployment/deploy.sh
 

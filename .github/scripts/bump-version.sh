@@ -12,8 +12,14 @@ if [ ! -f "$VERSION_FILE" ]; then
     echo "1.0.0" > "$VERSION_FILE"
 fi
 
-CURRENT_VERSION=$(cat "$VERSION_FILE")
+CURRENT_VERSION=$(cat "$VERSION_FILE" | xargs)
 echo "Current version: $CURRENT_VERSION"
+
+# Validate version format
+if ! echo "$CURRENT_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "Error: Invalid version format in VERSION file. Expected MAJOR.MINOR.PATCH"
+    exit 1
+fi
 
 # Parse version
 IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
@@ -37,7 +43,9 @@ if [ -z "$BUMP_TYPE" ]; then
     fi
     
     # Check for breaking changes (BREAKING CHANGE in commit body or ! after type)
-    if echo "$COMMITS" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE:"; then
+    if echo "$COMMITS" | grep -qE "^[a-z]+(\(.+\))?!:"; then
+        BUMP_TYPE="major"
+    elif git log "${LAST_TAG:+${LAST_TAG}..HEAD}" --pretty=format:"%b" | grep -q "BREAKING CHANGE:"; then
         BUMP_TYPE="major"
     # Check for features
     elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
@@ -75,8 +83,8 @@ esac
 NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 echo "New version: $NEW_VERSION (${BUMP_TYPE} bump)"
 
-# Update VERSION file
-echo "$NEW_VERSION" > "$VERSION_FILE"
+# Update VERSION file (ensure no trailing whitespace)
+echo -n "$NEW_VERSION" > "$VERSION_FILE"
 
 # Output for GitHub Actions
 if [ -n "${GITHUB_OUTPUT:-}" ]; then

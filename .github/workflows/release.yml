@@ -39,6 +39,13 @@ jobs:
       - name: Check if should create release
         id: check
         run: |
+          # Always create release on manual trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "✅ Manual trigger - will create release"
+            exit 0
+          fi
+
           # Check for conventional commit patterns in recent commits
           if git log -1 --pretty=format:"%s" | grep -qE "^(feat|fix|perf|refactor)(\(.+\))?:"; then
             echo "should_release=true" >> $GITHUB_OUTPUT
@@ -70,10 +77,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION
-          git commit -m "chore: bump version to $VERSION [skip ci]"
+          git commit -m "chore: bump version to $VERSION"
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin HEAD:${{ github.ref_name }}
           git push origin "v$VERSION"
+          
+          # Wait for tag to be available
+          echo "⏳ Waiting for tag to sync..."
+          sleep 5
 
   # Build and push versioned Docker images
   build-versioned-images:
@@ -141,23 +152,22 @@ jobs:
           if [ -n "$PREV_TAG" ]; then
             echo "## Changes since $PREV_TAG" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
-            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+            # Exclude the version bump commit from changelog
+            git log ${PREV_TAG}..HEAD~1 --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
           else
             echo "## Initial Release" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
-            git log --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+            git log HEAD~1 --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
           fi
 
           echo "" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.version.outputs.version }}
-          release_name: Release v${{ needs.version.outputs.version }}
+          name: Release v${{ needs.version.outputs.version }}
           body: |
             ## Release v${{ needs.version.outputs.version }}
 
@@ -194,14 +204,13 @@ jobs:
           cd "$PROJECT_PATH"
 
           # Update VERSION file
-          echo "${{ needs.version.outputs.version }}" > VERSION
+          echo -n "${{ needs.version.outputs.version }}" > VERSION
 
           # Sync code
           rsync -av \
             --exclude='.git/' \
             --exclude='node_modules/' \
             --exclude='backend/uploads/' \
-            --exclude='deployments/' \
             "$GITHUB_WORKSPACE/" ./
 
           # Set version in environment
@@ -227,11 +236,9 @@ jobs:
         if: always()
         run: |
           PROJECT_PATH="${{ secrets.PROJECT_PATH || '/opt/passthebytes-tools' }}"
-          cd "$PROJECT_PATH"
-          mkdir -p deployments
 
           if [ "${{ job.status }}" = "success" ]; then
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ v${{ needs.version.outputs.version }} deployed successfully" >> deployments/deployment.log
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ✅ v${{ needs.version.outputs.version }} deployed successfully" | tee -a "$PROJECT_PATH/deployment.log"
           else
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - ❌ v${{ needs.version.outputs.version }} deployment failed" >> deployments/deployment.log
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - ❌ v${{ needs.version.outputs.version }} deployment failed" | tee -a "$PROJECT_PATH/deployment.log"
           fi
