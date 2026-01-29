@@ -71,6 +71,19 @@ This project uses GitHub Actions for a full CI/CD workflow on pushes to `main`:
     - **Backend API:** `http://localhost:8008`
     - **API Docs:** `http://localhost:8008/docs`
 
+### Code Formatting (Optional)
+
+This project includes automated code formatting tools. Run before committing:
+
+**Windows:**
+```bash
+.\format-code.bat
+# or
+.\format-code.ps1
+```
+
+**Note:** All formatting checks are **non-blocking** and informational only. You can commit and push regardless of warnings. See [FORMATTING.md](FORMATTING.md) for details.
+
 ## Production Deployment
 
 The `deployment/deploy.sh` script is designed for automated production deployment on a Linux server. For details, review the script and the GitHub Actions `deploy.yml` workflow.
