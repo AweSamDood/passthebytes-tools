@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
 
@@ -15,7 +15,8 @@ class MockingTextInput(BaseModel):
         default=False, description="Start with a lowercase letter"
     )
 
-    @validator("text")
+    @field_validator("text")
+    @classmethod
     def validate_text(cls, v):
         if not v or not v.strip():
             raise ValueError("Text cannot be empty or contain only whitespace")

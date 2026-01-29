@@ -3,9 +3,17 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from .middleware import (
+    AuditLoggingMiddleware,
+    InputValidationMiddleware,
+    SecurityHeadersMiddleware,
+)
 from .routers import mocking_text  # Added
 from .routers import (
     image_converter,
@@ -19,6 +27,9 @@ from .services.cleanup import cleanup_temporary_files
 # Scheduler for cleanup tasks
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_temporary_files, "interval", hours=1)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -34,6 +45,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS based on environment
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -51,6 +66,16 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition", "content-disposition"],
 )
+
+# Add security middleware (order matters - add from innermost to outermost)
+# 1. Security headers (outermost - applied last, affects final response)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 2. Audit logging (logs the operations)
+app.add_middleware(AuditLoggingMiddleware)
+
+# 3. Input validation (validates incoming requests)
+app.add_middleware(InputValidationMiddleware)
 
 # Create uploads directory if it doesn't exist
 uploads_dir = Path("uploads")

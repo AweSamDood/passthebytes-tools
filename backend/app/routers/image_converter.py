@@ -4,11 +4,16 @@ import zipfile
 from typing import List
 
 import pillow_avif  # noqa: F401
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 SUPPORTED_INPUT_FORMATS = {
     "image/jpeg": "JPEG",
@@ -32,7 +37,9 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/convert-image")
+@limiter.limit("15/minute")
 async def convert_image(
+    request: Request,
     files: List[UploadFile] = File(...), output_format: str = Form(...)
 ):
     # Validate file size
