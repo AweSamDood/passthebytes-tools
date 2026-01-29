@@ -3,6 +3,7 @@ Tests for PNG to PDF security measures, specifically filename handling and sanit
 """
 import io
 import os
+import re
 import tempfile
 import uuid
 from unittest.mock import MagicMock, patch
@@ -127,7 +128,6 @@ class TestPngToPdfSecurity:
         assert "my_document.pdf" in content_disposition
         
         # Should NOT contain UUID pattern (8-4-4-4-12 hex digits)
-        import re
         uuid_pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
         assert not re.search(uuid_pattern, content_disposition)
 
@@ -159,7 +159,6 @@ class TestPngToPdfSecurity:
         content_disposition = response.headers.get("content-disposition", "")
         
         # Extract just the filename part from header (after filename=")
-        import re
         filename_match = re.search(r'filename="([^"]+)"', content_disposition)
         assert filename_match, "filename not found in content-disposition header"
         filename = filename_match.group(1)
@@ -259,7 +258,6 @@ class TestPngToPdfSecurity:
         assert "script" in filename  # The word itself is ok, just not the tags
         
         # Should contain UUID pattern
-        import re
         uuid_pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
         assert re.search(uuid_pattern, filename)
         

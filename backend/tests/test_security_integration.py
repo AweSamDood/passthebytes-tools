@@ -2,6 +2,7 @@
 Integration tests for security fixes in routers.
 """
 import io
+import re
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -80,12 +81,12 @@ class TestPngToPdfSecurity:
             assert response.status_code == 200
             content_disp = response.headers.get("content-disposition", "")
             # Extract filename from content-disposition header
-            import re
             filename_match = re.search(r'filename="([^"]+)"', content_disp)
             if filename_match:
                 filename = filename_match.group(1)
                 assert ";" not in filename
-            assert "rm" in content_disp or "file" in content_disp  # Should have sanitized parts
+                # Should have sanitized parts in filename
+                assert "rm" in filename or "file" in filename
 
     def test_normal_filename_preserved(self):
         """Test that normal filenames are preserved correctly."""

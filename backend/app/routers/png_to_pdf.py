@@ -173,11 +173,8 @@ async def convert_png_to_pdf(
     )
     
     # Create backend filename with UUID to prevent collisions
-    # Extract name without extension
-    if user_output_filename.endswith(".pdf"):
-        base_name = user_output_filename[:-4]
-    else:
-        base_name = user_output_filename
+    # Extract name without extension (we know it always ends with .pdf)
+    base_name = user_output_filename[:-4]
     
     # Append UUID for backend storage
     backend_filename = f"{base_name}_{uuid.uuid4()}.pdf"
