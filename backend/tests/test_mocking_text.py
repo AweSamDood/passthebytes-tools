@@ -25,11 +25,11 @@ def test_mocking_text_start_with_lowercase():
 
 
 def test_mocking_text_empty_string():
-    """Test mocking text with an empty string"""
+    """Test mocking text with an empty string - should be rejected"""
     response = client.post("/api/mocking-text", json={"text": ""})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["result"] == ""
+    # Empty strings should be rejected by validation
+    assert response.status_code == 422
+    assert "detail" in response.json()
 
 
 def test_mocking_text_with_symbols():
