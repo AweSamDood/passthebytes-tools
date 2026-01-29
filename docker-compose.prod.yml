@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-awesamdood/passthebytes-tools}/backend:${VERSION:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -16,6 +17,7 @@ services:
       - tools-network
 
   frontend:
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_REPO:-awesamdood/passthebytes-tools}/frontend:${VERSION:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
