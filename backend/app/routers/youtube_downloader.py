@@ -1,11 +1,13 @@
-# import asyncio
 import json
 import logging
+import math
 import os
 import re
 import uuid
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from shutil import rmtree
+from threading import Lock
 
 import yt_dlp
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
@@ -33,7 +35,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 class URLModel(BaseModel):
     url: str
-    
+
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str) -> str:
@@ -51,7 +53,7 @@ class URLModel(BaseModel):
 class PlaylistDownloadModel(BaseModel):
     url: str
     video_ids: list[str]
-    
+
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str) -> str:
@@ -61,7 +63,7 @@ class PlaylistDownloadModel(BaseModel):
         if len(v) > 2048:
             raise ValueError("URL too long (max 2048 characters)")
         return v
-    
+
     @field_validator("video_ids")
     @classmethod
     def validate_video_ids(cls, v: list[str]) -> list[str]:
@@ -85,6 +87,92 @@ class PlaylistDownloadModel(BaseModel):
 def remove_dir(path: str):
     if os.path.exists(path):
         rmtree(path)
+
+
+def calculate_thread_count(video_count: int) -> int:
+    """
+    Calculate the number of threads to use based on video count.
+    Uses logarithmic scaling with a maximum of 10 threads.
+
+    Examples:
+    - 1 video: 1 thread
+    - 2-3 videos: 2 threads
+    - 4-7 videos: 3 threads
+    - 8-15 videos: 4 threads
+    - Maximum: 10 threads
+    """
+    if video_count <= 0:
+        return 1
+    # floor(log2(video_count)) + 1, capped at 10
+    threads = min(10, math.floor(math.log2(video_count)) + 1)
+    return threads
+
+
+def download_single_video(
+    video_id: str, temp_dir: str, max_duration: int = 7200
+) -> dict:
+    """
+    Download a single video with error handling and duration check.
+
+    Args:
+        video_id: The YouTube video ID
+        temp_dir: Directory to save the downloaded file
+        max_duration: Maximum video duration in seconds (default: 7200 = 2 hours)
+
+    Returns:
+        dict with keys: success (bool), video_id (str), error (str, optional)
+    """
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+    try:
+        # First, check video duration
+        info_opts = {"noplaylist": True}
+        with yt_dlp.YoutubeDL(info_opts) as ydl:
+            info = ydl.extract_info(video_url, download=False)
+            duration = info.get("duration", 0)
+            title = info.get("title", "Unknown")
+
+            if duration > max_duration:
+                max_hours = max_duration / 3600
+                actual_hours = duration / 3600
+                logging.warning(
+                    f"Skipping video {video_id} ('{title}'): "
+                    f"duration {actual_hours:.2f}h exceeds limit of {max_hours:.2f}h"
+                )
+                return {
+                    "success": False,
+                    "video_id": video_id,
+                    "title": title,
+                    "error": f"Video duration ({actual_hours:.2f}h) exceeds {max_hours}h limit",
+                }
+
+        # Download the video
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }
+            ],
+            "outtmpl": os.path.join(temp_dir, "%(title)s.%(ext)s"),
+            "noplaylist": True,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
+
+        logging.info(f"Successfully downloaded video {video_id} ('{title}')")
+        return {"success": True, "video_id": video_id, "title": title}
+
+    except Exception as e:
+        logging.error(f"Error downloading video {video_id}: {e}")
+        return {
+            "success": False,
+            "video_id": video_id,
+            "error": str(e),
+        }
 
 
 @router.post("/info")
@@ -270,6 +358,7 @@ async def get_playlist_info(request: Request, url_model: URLModel):
 def do_playlist_download(url: str, video_ids: list[str], job_id: str):
     logging.info(f"Starting playlist download for job_id: {job_id}")
     progress_file = os.path.join("temp_downloads", f"{job_id}_progress.json")
+    progress_lock = Lock()  # Lock for thread-safe progress file writes
 
     if len(video_ids) > 50:
         logging.error(
@@ -290,7 +379,10 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
     os.makedirs(temp_dir, exist_ok=True)
 
     total_videos = len(video_ids)
-    logging.info(f"Total videos to download: {total_videos} for job_id: {job_id}")
+    thread_count = calculate_thread_count(total_videos)
+    logging.info(
+        f"Total videos to download: {total_videos} using {thread_count} threads for job_id: {job_id}"
+    )
 
     try:
         playlist_info_opts = {"extract_flat": True, "noplaylist": False}
@@ -306,40 +398,100 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
             f"Playlist title: '{sanitized_playlist_title}' for job_id: {job_id}"
         )
 
-        for i, video_id in enumerate(video_ids):
-            logging.info(
-                f"Downloading video {i+1}/{total_videos} "
-                f"(ID: {video_id}) for job_id: {job_id}"
-            )
-            with open(progress_file, "w") as f:
-                json.dump(
-                    {"status": "processing", "current": i + 1, "total": total_videos}, f
-                )
+        # Track download results
+        completed = 0
+        failed_videos = []
+        successful_videos = []
 
-            video_url = f"https://www.youtube.com/watch?v={video_id}"
-            ydl_opts = {
-                "format": "bestaudio/best",
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "192",
-                    }
-                ],
-                "outtmpl": os.path.join(temp_dir, "%(title)s.%(ext)s"),
-                "noplaylist": True,
+        # Use ThreadPoolExecutor for concurrent downloads
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            # Submit all download tasks
+            future_to_video = {
+                executor.submit(download_single_video, video_id, temp_dir): video_id
+                for video_id in video_ids
             }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([video_url])
-            logging.info(
-                f"Finished downloading video "
-                f"{i+1}/{total_videos} (ID: {video_id}) for job_id: {job_id}"
-            )
 
+            # Process completed downloads
+            for future in as_completed(future_to_video):
+                result = future.result()
+                completed += 1
+
+                if result["success"]:
+                    successful_videos.append(result)
+                    logging.info(
+                        f"Progress: {completed}/{total_videos} - "
+                        f"Successfully downloaded '{result.get('title', result['video_id'])}'"
+                    )
+                else:
+                    failed_videos.append(result)
+                    logging.warning(
+                        f"Progress: {completed}/{total_videos} - "
+                        f"Failed to download {result['video_id']}: {result.get('error', 'Unknown error')}"
+                    )
+
+                # Update progress file with thread-safe lock
+                with progress_lock:
+                    with open(progress_file, "w") as f:
+                        json.dump(
+                            {
+                                "status": "processing",
+                                "current": completed,
+                                "total": total_videos,
+                                "successful": len(successful_videos),
+                                "failed": len(failed_videos),
+                            },
+                            f,
+                        )
+
+        # Log summary
+        logging.info(
+            f"Download complete for job_id: {job_id}. "
+            f"Successful: {len(successful_videos)}, Failed: {len(failed_videos)}"
+        )
+
+        # Check if we have any successful downloads
+        if len(successful_videos) == 0:
+            error_msg = (
+                "All videos failed to download. "
+                f"Total attempted: {total_videos}, Failed: {len(failed_videos)}"
+            )
+            logging.error(f"Job {job_id}: {error_msg}")
+
+            final_status = {
+                "status": "error",
+                "message": error_msg,
+                "total": total_videos,
+                "successful": 0,
+                "failed": len(failed_videos),
+                "failed_videos": [
+                    {
+                        "video_id": v["video_id"],
+                        "title": v.get("title", "Unknown"),
+                        "error": v.get("error", "Unknown error"),
+                    }
+                    for v in failed_videos
+                ],
+            }
+
+            with open(progress_file, "w") as f:
+                json.dump(final_status, f)
+
+            # Clean up temp directory
+            rmtree(temp_dir)
+            return
+
+        # Zip the successfully downloaded files
         logging.info(f"Zipping files for job_id: {job_id}")
         with open(progress_file, "w") as f:
             json.dump(
-                {"status": "zipping", "current": total_videos, "total": total_videos}, f
+                {
+                    "status": "zipping",
+                    "current": total_videos,
+                    "total": total_videos,
+                    "successful": len(successful_videos),
+                    "failed": len(failed_videos),
+                },
+                f,
             )
 
         zip_filename = f"{sanitized_playlist_title}_{job_id}.zip"
@@ -350,8 +502,29 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
                     zipf.write(os.path.join(root, file), arcname=file)
 
         logging.info(f"Zipping complete for job_id: {job_id}. Zip path: {zip_path}")
+
+        # Prepare final status with failed video info
+        final_status = {
+            "status": "complete",
+            "zip_name": zip_filename,
+            "total": total_videos,
+            "successful": len(successful_videos),
+            "failed": len(failed_videos),
+        }
+
+        # Add failed video details if any
+        if failed_videos:
+            final_status["failed_videos"] = [
+                {
+                    "video_id": v["video_id"],
+                    "title": v.get("title", "Unknown"),
+                    "error": v.get("error", "Unknown error"),
+                }
+                for v in failed_videos
+            ]
+
         with open(progress_file, "w") as f:
-            json.dump({"status": "complete", "zip_name": zip_filename}, f)
+            json.dump(final_status, f)
 
         rmtree(temp_dir)
         logging.info(f"Cleaned up temp directory: {temp_dir}")
