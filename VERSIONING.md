@@ -107,7 +107,7 @@ To enable automatic merging of version bump PRs:
 **GitHub Actions Bot Permissions:**
 The workflow uses the built-in `GITHUB_TOKEN` which has the necessary permissions to:
 - Create branches
-- Create pull requests  
+- Create pull requests
 - Push tags (after PR is merged to main)
 - Push to GitHub Container Registry
 

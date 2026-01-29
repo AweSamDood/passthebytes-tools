@@ -100,7 +100,7 @@ check-action (determines what to do)
     └─> create-tag (if action=release)
             ├─> build-versioned-images
             │       └─> create-release
-            └─> deploy (parallel with build)
+            └─> deploy
 ```
 
 ## Permissions Required

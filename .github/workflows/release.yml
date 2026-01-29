@@ -149,7 +149,7 @@ jobs:
           PR_URL=$(gh pr create \
             --title "chore: release v$VERSION" \
             --body-file /tmp/pr_body.md \
-            --base main \
+            --base ${{ github.ref_name }} \
             --head "$BRANCH_NAME" \
             --label "release")
           
