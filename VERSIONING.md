@@ -97,6 +97,22 @@ To enable automatic merging of version bump PRs:
 4. Configure required status checks as needed
 5. The workflow will automatically enable auto-merge on version bump PRs
 
+**Recommended branch protection settings:**
+- ✅ Require pull request reviews before merging (optional for automation)
+- ✅ Require status checks to pass before merging
+- ✅ Require branches to be up to date before merging
+- ✅ Allow auto-merge
+- ⚠️ Do NOT require review from code owners for `release/*` branches (if using auto-merge)
+
+**GitHub Actions Bot Permissions:**
+The workflow uses the built-in `GITHUB_TOKEN` which has the necessary permissions to:
+- Create branches
+- Create pull requests  
+- Push tags (after PR is merged to main)
+- Push to GitHub Container Registry
+
+No additional tokens or secrets are required.
+
 ## Manual Version Bumping
 
 You can manually trigger a release with a specific version bump:
