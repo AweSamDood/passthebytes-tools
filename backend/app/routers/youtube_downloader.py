@@ -13,6 +13,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from werkzeug.utils import secure_filename
 
+from app.utils import sanitize_filename
+
 # from urllib.parse import parse_qs, urlparse
 
 
@@ -120,7 +122,7 @@ async def download_file(
         raise HTTPException(status_code=500, detail=f"Failed to download: {e}")
 
     # Sanitize the title to remove characters that are illegal in filenames
-    sanitized_title = re.sub(r'[\\/:*?"<>|]', "", title)
+    sanitized_title = sanitize_filename(title)
     file_name_for_client = f"{sanitized_title}.{file_format}"
     media_type = "audio/mpeg" if file_format == "mp3" else "video/mp4"
 
@@ -249,7 +251,8 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
         with yt_dlp.YoutubeDL(playlist_info_opts) as ydl:
             playlist_info = ydl.extract_info(url, download=False)
         playlist_title = playlist_info.get("title", "playlist")
-        sanitized_playlist_title = re.sub(r'[\\/:*?"<>|]', "", playlist_title)
+        # Use both werkzeug secure_filename and our sanitize_filename for defense in depth
+        sanitized_playlist_title = sanitize_filename(playlist_title)
         sanitized_playlist_title = secure_filename(sanitized_playlist_title)
         logging.info(
             f"Playlist title: '{sanitized_playlist_title}' for job_id: {job_id}"
@@ -367,9 +370,12 @@ async def download_zip(
 ):
     logging.info(f"Download request received for zip: {zip_name}")
     base_path = "temp_downloads"
-    sanitized_zip_name = secure_filename(zip_name)
+    # Sanitize filename to prevent path traversal
+    sanitized_zip_name = sanitize_filename(zip_name)
+    # Also use werkzeug's secure_filename for additional safety
+    sanitized_zip_name = secure_filename(sanitized_zip_name)
     zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
-    if not zip_path.startswith(base_path):
+    if not zip_path.startswith(os.path.abspath(base_path)):
         logging.error(f"Access to the specified file is forbidden: {zip_path}")
         raise HTTPException(
             status_code=403, detail="Access to the specified file is forbidden."
@@ -383,4 +389,5 @@ async def download_zip(
 
     # background_tasks.add_task(remove_file, zip_path)
     # background_tasks.add_task(remove_file, progress_file_path)
-    return FileResponse(path=zip_path, media_type="application/zip", filename=zip_name)
+    # Use sanitized filename in the response header
+    return FileResponse(path=zip_path, media_type="application/zip", filename=sanitized_zip_name)

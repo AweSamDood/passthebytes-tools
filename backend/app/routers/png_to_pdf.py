@@ -1,6 +1,7 @@
 # app/routers/png_to_pdf.py
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +13,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image
 from starlette.background import BackgroundTask
+
+from app.utils import sanitize_filename
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -171,9 +174,10 @@ async def convert_png_to_pdf(
             file_path = save_uploaded_file(file, temp_dir)
             image_paths.append(file_path)
 
-        # Generate output filename
+        # Generate output filename with sanitization to prevent path traversal
+        sanitized_filename = sanitize_filename(filename)
         output_filename = (
-            f"{filename}.pdf" if not filename.endswith(".pdf") else filename
+            f"{sanitized_filename}.pdf" if not sanitized_filename.endswith(".pdf") else sanitized_filename
         )
         output_path = os.path.join(temp_dir, output_filename)
 
