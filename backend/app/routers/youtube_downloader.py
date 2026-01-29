@@ -251,7 +251,9 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
         with yt_dlp.YoutubeDL(playlist_info_opts) as ydl:
             playlist_info = ydl.extract_info(url, download=False)
         playlist_title = playlist_info.get("title", "playlist")
-        # Use both werkzeug secure_filename and our sanitize_filename for defense in depth
+        # Defense in depth: Use both sanitization functions for maximum safety
+        # sanitize_filename() handles command injection and path traversal
+        # secure_filename() provides additional werkzeug-specific protections
         sanitized_playlist_title = sanitize_filename(playlist_title)
         sanitized_playlist_title = secure_filename(sanitized_playlist_title)
         logging.info(
@@ -370,9 +372,10 @@ async def download_zip(
 ):
     logging.info(f"Download request received for zip: {zip_name}")
     base_path = "temp_downloads"
-    # Sanitize filename to prevent path traversal
+    # Defense in depth: Use both sanitization functions for maximum safety
+    # sanitize_filename() handles command injection and path traversal
+    # secure_filename() provides additional werkzeug-specific protections
     sanitized_zip_name = sanitize_filename(zip_name)
-    # Also use werkzeug's secure_filename for additional safety
     sanitized_zip_name = secure_filename(sanitized_zip_name)
     zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
     if not zip_path.startswith(os.path.abspath(base_path)):

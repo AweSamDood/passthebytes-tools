@@ -68,7 +68,7 @@ class TestSanitizeFilename:
     def test_filename_with_spaces(self):
         """Test that filenames with spaces are handled correctly."""
         result = sanitize_filename("my document file.pdf")
-        # Multiple spaces should be collapsed to single underscore
+        # Spaces are replaced with underscores, then multiple underscores collapsed
         assert result == "my_document_file.pdf"
 
     def test_filename_with_hyphens(self):
@@ -89,14 +89,17 @@ class TestSanitizeFilename:
     def test_only_special_chars(self):
         """Test that filenames with only special characters get default value."""
         result = sanitize_filename("!@#$%^&*()")
-        # After stripping special chars and spaces, should get default
-        # (actually becomes '_' after sanitization, but that's empty after strip)
+        # Special chars replaced with underscores: "__________"
+        # Collapsed to single underscore: "_"
+        # Stripped: "" (empty)
+        # Returns default because empty
         assert result == "unnamed_file"
 
     def test_leading_dots_removed(self):
         """Test that leading dots are removed."""
         result = sanitize_filename("...hidden_file.txt")
-        # Files starting with dot after sanitization are invalid
+        # After stripping leading dots from "...", we're left with ".hidden_file.txt"
+        # which starts with a dot (hidden file), so it returns the default
         assert result == "unnamed_file"
 
     def test_trailing_dots_removed(self):

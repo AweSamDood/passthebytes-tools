@@ -1,7 +1,6 @@
 # app/routers/png_to_pdf.py
 import logging
 import os
-import re
 import shutil
 import subprocess
 import tempfile
