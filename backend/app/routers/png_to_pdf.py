@@ -8,16 +8,23 @@ import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from starlette.background import BackgroundTask
+
+from app.utils import sanitize_filename
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
@@ -138,7 +145,9 @@ def merge_pdfs(pdf_files: List[str], output_path: str):
 
 
 @router.post("/convert")
+@limiter.limit("10/minute")
 async def convert_png_to_pdf(
+    request: Request,
     files: List[UploadFile] = File(...),
     dpi: int = Form(300),
     filename: str = Form("converted_document"),
@@ -171,9 +180,10 @@ async def convert_png_to_pdf(
             file_path = save_uploaded_file(file, temp_dir)
             image_paths.append(file_path)
 
-        # Generate output filename
+        # Generate output filename with sanitization to prevent path traversal
+        sanitized_filename = sanitize_filename(filename)
         output_filename = (
-            f"{filename}.pdf" if not filename.endswith(".pdf") else filename
+            f"{sanitized_filename}.pdf" if not sanitized_filename.endswith(".pdf") else sanitized_filename
         )
         output_path = os.path.join(temp_dir, output_filename)
 

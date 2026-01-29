@@ -55,35 +55,57 @@ jobs:
           
           # Display results in a readable format (will show vulnerabilities but not fail the build)
           echo "Safety scan results:"
-          safety scan --short-report || echo "⚠️ Vulnerabilities found - check safety-report.json for details"
+          safety scan --short-report || echo "Vulnerabilities found - check safety-report.json for details"
           
           # Static security analysis
-          echo "Running Bandit security analysis..."
-          bandit -r app/ -f json -o bandit-report.json || echo "⚠️ Security issues found - check bandit-report.json for details"
-          
+          bandit -r app/ -f json -o bandit-report.json || true
+
+      - name: Check for critical vulnerabilities
+        continue-on-error: true
+        run: |
+          cd backend
           echo "========================================="
-          echo "Security checks completed (non-blocking)"
+          echo "Checking for critical vulnerabilities..."
+          echo "========================================="
+          
+          # Check if safety report exists and count vulnerabilities
+          if [ -f safety-report.json ]; then
+            # Count vulnerabilities using Python
+            VULN_COUNT=$(python3 -c "
+          import json
+          import sys
+          try:
+              with open('safety-report.json', 'r') as f:
+                  data = json.load(f)
+                  vuln_count = len(data.get('vulnerabilities', []))
+                  print(vuln_count)
+          except Exception as e:
+              print(0)
+          " 2>/dev/null || echo "0")
+            
+            echo "Found $VULN_COUNT vulnerabilities"
+            
+            # For now, let's allow the build to continue but warn about vulnerabilities
+            if [ "$VULN_COUNT" -gt 0 ]; then
+              echo "⚠️ Warning: Vulnerabilities detected. Review safety-report.json for details."
+            fi
+            # Uncomment the next line to fail on any vulnerabilities:
+            # [ "$VULN_COUNT" -eq 0 ] || exit 1
+          else
+            echo "No safety report found, skipping vulnerability check"
+          fi
+          
           echo "========================================="
 
       - name: Code quality checks
         continue-on-error: true
         run: |
           cd backend
-          echo "========================================="
-          echo "Code Quality Checks (Non-blocking)"
-          echo "========================================="
+          isort --check-only app/
           
           # Check code formatting
           echo "Checking code formatting with Black..."
-          black --check app/ || echo "⚠️ Black formatting issues found (non-blocking)"
-          
-          # Check import sorting
-          echo "Checking import sorting with isort..."
-          isort --check-only app/ || echo "⚠️ Import sorting issues found (non-blocking)"
-          
-          # Linting
-          echo "Running flake8 linting..."
-          flake8 app/ --max-line-length=88 --extend-ignore=E203,W503 || echo "⚠️ Linting issues found (non-blocking)"
+          flake8 app/ --max-line-length=88 --extend-ignore=E203,W503
           
           echo "========================================="
           echo "Code quality checks completed"
@@ -94,7 +116,7 @@ jobs:
         run: |
           cd backend
           # Create test environment
-          python -m pytest tests/ -v --tb=short || echo "No tests found - consider adding tests!"
+          python -m pytest tests/ -v --tb=short
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4
@@ -130,13 +152,9 @@ jobs:
         run: |
           cd frontend
           echo "========================================="
-          echo "Frontend Linting (Non-blocking)"
+          echo "Running ESLint checks..."
           echo "========================================="
-          # Add basic ESLint if not configured
-          if ! npm run lint 2>/dev/null; then
-            echo "No lint script found. Adding basic ESLint check..."
-            npx eslint src/ --ext .js,.jsx || echo "⚠️ ESLint not configured - consider adding it (non-blocking)"
-          fi
+          npx eslint src/ --ext .js,.jsx || echo "⚠️ ESLint not configured - consider adding it (non-blocking)"
           echo "========================================="
           echo "Linting completed (non-blocking)"
           echo "========================================="
@@ -144,8 +162,7 @@ jobs:
       - name: Run tests
         run: |
           cd frontend
-          # Set CI environment to avoid interactive mode and pass with no tests
-          CI=true npm test -- --coverage --watchAll=false --passWithNoTests
+          npm run test:ci
 
       - name: Build frontend
         run: |

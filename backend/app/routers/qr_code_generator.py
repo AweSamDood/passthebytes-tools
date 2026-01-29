@@ -5,9 +5,11 @@ from typing import Optional
 import qrcode
 import qrcode.image.svg
 import vobject
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from PIL import Image
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.models.qr_code import (
     ContactData,
@@ -19,6 +21,9 @@ from app.models.qr_code import (
 )
 
 router = APIRouter()
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 
 def generate_wifi_string(wifi_data: WiFiData):
@@ -88,7 +93,9 @@ def add_logo_overlay(qr_image: Image.Image, logo_file: UploadFile):
 
 
 @router.post("/generate")
+@limiter.limit("20/minute")
 async def generate_qr_code(
+    request: Request,
     request_data: str = Form(...),
     logo_file: Optional[UploadFile] = File(None),
     file_format: str = Form("png"),

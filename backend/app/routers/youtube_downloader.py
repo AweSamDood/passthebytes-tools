@@ -8,10 +8,14 @@ import zipfile
 from shutil import rmtree
 
 import yt_dlp
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from werkzeug.utils import secure_filename
+
+from app.utils import sanitize_filename
 
 # from urllib.parse import parse_qs, urlparse
 
@@ -23,14 +27,54 @@ logging.basicConfig(
 
 router = APIRouter()
 
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
+
 
 class URLModel(BaseModel):
     url: str
+    
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate YouTube URL."""
+        if not v or not isinstance(v, str):
+            raise ValueError("URL is required")
+        if len(v) > 2048:
+            raise ValueError("URL too long (max 2048 characters)")
+        # Check for YouTube domain
+        if not any(domain in v.lower() for domain in ["youtube.com", "youtu.be"]):
+            raise ValueError("URL must be a YouTube link")
+        return v
 
 
 class PlaylistDownloadModel(BaseModel):
     url: str
     video_ids: list[str]
+    
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate YouTube URL."""
+        if not v or not isinstance(v, str):
+            raise ValueError("URL is required")
+        if len(v) > 2048:
+            raise ValueError("URL too long (max 2048 characters)")
+        return v
+    
+    @field_validator("video_ids")
+    @classmethod
+    def validate_video_ids(cls, v: list[str]) -> list[str]:
+        """Validate video IDs list."""
+        if not v:
+            raise ValueError("At least one video ID is required")
+        if len(v) > 50:
+            raise ValueError("Cannot download more than 50 videos at a time")
+        # Validate each video ID format (YouTube video IDs are 11 characters)
+        for video_id in v:
+            if not re.match(r'^[a-zA-Z0-9_-]{11}$', video_id):
+                raise ValueError(f"Invalid video ID format: {video_id}")
+        return v
 
 
 # def remove_file(path: str):
@@ -44,7 +88,8 @@ def remove_dir(path: str):
 
 
 @router.post("/info")
-async def get_info(url_model: URLModel):
+@limiter.limit("30/minute")
+async def get_info(request: Request, url_model: URLModel):
     ydl_opts = {"noplaylist": True}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -55,7 +100,9 @@ async def get_info(url_model: URLModel):
 
 
 @router.post("/download/{file_format}")
+@limiter.limit("5/minute")
 async def download_file(
+    request: Request,
     file_format: str, url_model: URLModel, background_tasks: BackgroundTasks
 ):
     if file_format not in ["mp3", "mp4"]:
@@ -120,7 +167,7 @@ async def download_file(
         raise HTTPException(status_code=500, detail=f"Failed to download: {e}")
 
     # Sanitize the title to remove characters that are illegal in filenames
-    sanitized_title = re.sub(r'[\\/:*?"<>|]', "", title)
+    sanitized_title = sanitize_filename(title)
     file_name_for_client = f"{sanitized_title}.{file_format}"
     media_type = "audio/mpeg" if file_format == "mp3" else "video/mp4"
 
@@ -132,7 +179,8 @@ async def download_file(
 
 
 @router.post("/playlist-info")
-async def get_playlist_info(url_model: URLModel):
+@limiter.limit("20/minute")
+async def get_playlist_info(request: Request, url_model: URLModel):
     logging.info(f"Fetching playlist info for URL: {url_model.url}")
 
     ydl_opts = {
@@ -249,7 +297,10 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
         with yt_dlp.YoutubeDL(playlist_info_opts) as ydl:
             playlist_info = ydl.extract_info(url, download=False)
         playlist_title = playlist_info.get("title", "playlist")
-        sanitized_playlist_title = re.sub(r'[\\/:*?"<>|]', "", playlist_title)
+        # Defense in depth: Use both sanitization functions for maximum safety
+        # sanitize_filename() handles command injection and path traversal
+        # secure_filename() provides additional werkzeug-specific protections
+        sanitized_playlist_title = sanitize_filename(playlist_title)
         sanitized_playlist_title = secure_filename(sanitized_playlist_title)
         logging.info(
             f"Playlist title: '{sanitized_playlist_title}' for job_id: {job_id}"
@@ -314,8 +365,10 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
 
 
 @router.post("/download-playlist")
+@limiter.limit("3/hour")
 async def download_playlist(
-    request: PlaylistDownloadModel, background_tasks: BackgroundTasks
+    request: Request,
+    request_body: PlaylistDownloadModel, background_tasks: BackgroundTasks
 ):
     job_id = str(uuid.uuid4())
     logging.info(f"Creating download job with job_id: {job_id}")
@@ -327,11 +380,11 @@ async def download_playlist(
     # Create the progress file immediately with an initializing state
     with open(progress_file, "w") as f:
         json.dump(
-            {"status": "initializing", "current": 0, "total": len(request.video_ids)}, f
+            {"status": "initializing", "current": 0, "total": len(request_body.video_ids)}, f
         )
 
     background_tasks.add_task(
-        do_playlist_download, request.url, request.video_ids, job_id
+        do_playlist_download, request_body.url, request_body.video_ids, job_id
     )
     return JSONResponse({"job_id": job_id})
 
@@ -361,15 +414,21 @@ async def get_playlist_download_progress(job_id: str):
 
 
 @router.get("/download-zip/")
+@limiter.limit("10/minute")
 async def download_zip(
+    request: Request,
     zip_name: str = Query(..., alias="filename"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     logging.info(f"Download request received for zip: {zip_name}")
     base_path = "temp_downloads"
-    sanitized_zip_name = secure_filename(zip_name)
+    # Defense in depth: Use both sanitization functions for maximum safety
+    # sanitize_filename() handles command injection and path traversal
+    # secure_filename() provides additional werkzeug-specific protections
+    sanitized_zip_name = sanitize_filename(zip_name)
+    sanitized_zip_name = secure_filename(sanitized_zip_name)
     zip_path = os.path.normpath(os.path.join(base_path, sanitized_zip_name))
-    if not zip_path.startswith(base_path):
+    if not zip_path.startswith(os.path.abspath(base_path)):
         logging.error(f"Access to the specified file is forbidden: {zip_path}")
         raise HTTPException(
             status_code=403, detail="Access to the specified file is forbidden."
@@ -383,4 +442,5 @@ async def download_zip(
 
     # background_tasks.add_task(remove_file, zip_path)
     # background_tasks.add_task(remove_file, progress_file_path)
-    return FileResponse(path=zip_path, media_type="application/zip", filename=zip_name)
+    # Use sanitized filename in the response header
+    return FileResponse(path=zip_path, media_type="application/zip", filename=sanitized_zip_name)
