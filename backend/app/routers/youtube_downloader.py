@@ -638,13 +638,22 @@ async def download_zip(
 
     # Extract job_id from zip filename to locate progress file
     # Filename format: {sanitized_playlist_title}_{job_id}.zip
+    # SECURITY: Use sanitized_zip_name instead of original zip_name to prevent path traversal
     try:
-        job_id = zip_name.rsplit("_", 1)[1].replace(".zip", "")
-        progress_file_path = os.path.join("temp_downloads", f"{job_id}_progress.json")
+        job_id = sanitized_zip_name.rsplit("_", 1)[1].replace(".zip", "")
+        progress_file_path = os.path.abspath(
+            os.path.normpath(os.path.join("temp_downloads", f"{job_id}_progress.json"))
+        )
+
+        # Validate the progress file path is within the allowed directory
+        base_path_abs = os.path.abspath(base_path)
+        if not progress_file_path.startswith(base_path_abs):
+            logging.warning(f"Progress file path traversal attempt blocked: {progress_file_path}")
+            progress_file_path = None
     except (IndexError, ValueError):
         # If we can't extract job_id, just delete the zip file
         progress_file_path = None
-        logging.warning(f"Could not extract job_id from zip filename: {zip_name}")
+        logging.warning(f"Could not extract job_id from zip filename: {sanitized_zip_name}")
 
     # Schedule file deletions after serving to user
     background_tasks.add_task(remove_file, zip_path)
