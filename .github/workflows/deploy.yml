@@ -3,8 +3,17 @@ name: Manual Deploy to Production
 on:
   workflow_dispatch:  # Manual deployment only
     inputs:
-      version:
-        description: 'Version to deploy (e.g., 1.0.0) or leave empty for latest'
+      version_selection:
+        description: 'Version selection method'
+        required: true
+        type: choice
+        options:
+          - latest
+          - previous
+          - specific
+        default: 'latest'
+      specific_version:
+        description: 'Specific version (only used if "specific" is selected above, e.g., 1.2.2 WITHOUT the v prefix)'
         required: false
         type: string
 
@@ -14,10 +23,61 @@ jobs:
     environment: production
 
     steps:
+      - name: Determine version to deploy
+        id: version
+        run: |
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          
+          case "${{ github.event.inputs.version_selection }}" in
+            latest)
+              # Get the latest release tag
+              LATEST_TAG=$(git ls-remote --tags --refs --sort="v:refname" "$REPO_URL" | tail -n1 | sed 's/.*\///')
+              if [ -z "$LATEST_TAG" ]; then
+                echo "Error: No tags found in the repository. Please create a release first."
+                exit 1
+              fi
+              VERSION=${LATEST_TAG#v}
+              echo "Using latest release: $VERSION (tag: $LATEST_TAG)"
+              ;;
+            previous)
+              # Get the second latest release tag
+              TAG_COUNT=$(git ls-remote --tags --refs "$REPO_URL" | wc -l)
+              if [ "$TAG_COUNT" -lt 2 ]; then
+                echo "Error: Less than 2 tags found in the repository. Cannot select 'previous' version."
+                echo "Available tags: $TAG_COUNT"
+                exit 1
+              fi
+              PREV_TAG=$(git ls-remote --tags --refs --sort="v:refname" "$REPO_URL" | tail -n2 | head -n1 | sed 's/.*\///')
+              VERSION=${PREV_TAG#v}
+              echo "Using previous release: $VERSION (tag: $PREV_TAG)"
+              ;;
+            specific)
+              VERSION="${{ github.event.inputs.specific_version }}"
+              if [ -z "$VERSION" ]; then
+                echo "Error: Specific version selected but no version provided."
+                echo "Please enter a version number (e.g., 1.2.2) in the 'Specific version' field."
+                exit 1
+              fi
+              # Remove 'v' prefix if user accidentally included it
+              VERSION=${VERSION#v}
+              echo "Using specific version: $VERSION"
+              ;;
+          esac
+          
+          # Final validation
+          if [ -z "$VERSION" ]; then
+            echo "Error: Failed to determine version. VERSION is empty."
+            exit 1
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Will deploy version: $VERSION"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
+          ref: ${{ steps.version.outputs.tag }}
 
       - name: Verify project directory exists
         run: |
@@ -66,12 +126,10 @@ jobs:
 
           echo "🚀 Starting deployment..."
 
-          # Set VERSION if provided, otherwise use what's in VERSION file
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            export VERSION="${{ github.event.inputs.version }}"
-            echo -n "$VERSION" > VERSION
-            echo "📦 Deploying version: $VERSION"
-          fi
+          # Use the version determined in the first step
+          export VERSION="${{ steps.version.outputs.version }}"
+          echo -n "$VERSION" > VERSION
+          echo "📦 Deploying version: $VERSION"
 
           # Make sure deploy script is executable
           chmod +x deployment/deploy.sh

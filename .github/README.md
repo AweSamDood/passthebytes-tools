@@ -21,10 +21,22 @@ This directory contains GitHub-specific configuration and documentation for the 
 ### Workflows
 - **[workflows/release.yml](workflows/release.yml)** - Automated release and deployment workflow
 - **[workflows/ci.yml](workflows/ci.yml)** - Continuous integration pipeline
-- **[workflows/deploy.yml](workflows/deploy.yml)** - Manual deployment workflow
+- **[workflows/deploy.yml](workflows/deploy.yml)** - Manual deployment workflow with version selection
 
 ### Scripts
 - **[scripts/bump-version.sh](scripts/bump-version.sh)** - Version bumping script
+
+### Manual Deployment
+The **Deploy to Production** workflow (`deploy.yml`) supports easy version selection:
+- **Latest**: Automatically deploys the most recent release tag
+- **Previous**: Automatically deploys the second most recent release tag  
+- **Specific**: Deploy any specific version by entering the version number (e.g., 1.2.2)
+
+To deploy manually:
+1. Go to **Actions** → **Manual Deploy to Production** → **Run workflow**
+2. Select your preferred version selection method from the dropdown
+3. If you chose "Specific", enter the version number in the text field
+4. Click **Run workflow**
 
 ## 📚 Reading Order
 
