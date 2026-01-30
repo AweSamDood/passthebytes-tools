@@ -65,9 +65,9 @@ def check_disk_space_available() -> bool:
 
 def cleanup_temporary_files():
     """
-    Clean up temporary files based on age and directory size.
+    Clean up temporary files based on age and total disk usage.
     - Delete files older than 2 hours (7200 seconds)
-    - If directory exceeds 100GB, delete oldest files first
+    - If total disk usage exceeds MAX_DIR_SIZE_GB, delete oldest files first across all directories
     """
     for temp_dir in TEMP_DIRS:
         Path(temp_dir).mkdir(parents=True, exist_ok=True)
@@ -90,59 +90,59 @@ def cleanup_temporary_files():
                     print(f"Deleted old temporary file (>2h): {file_path}")
             except Exception as e:
                 print(f"Error deleting file {file_path}: {e}")
+    
+    # After first pass on all directories, check total disk usage
+    try:
+        total_bytes, max_bytes = get_total_disk_usage()
+        total_gb = total_bytes / (1024**3)
 
-        # Second pass: recalculate directory size after old file deletion
-        # and delete oldest files if size exceeds limit
-        try:
-            dir_size_bytes = get_directory_size(path)
-            dir_size_gb = dir_size_bytes / (1024**3)
+        if total_gb > MAX_DIR_SIZE_GB:
+            print(
+                f"Total disk usage ({total_gb:.2f}GB) "
+                f"exceeds limit ({MAX_DIR_SIZE_GB}GB). Cleaning up..."
+            )
 
-            # Check against total disk usage across all directories
-            total_bytes, max_bytes = get_total_disk_usage()
-            total_gb = total_bytes / (1024**3)
-
-            if total_gb > MAX_DIR_SIZE_GB:
-                print(
-                    f"Total disk usage ({total_gb:.2f}GB) "
-                    f"exceeds limit ({MAX_DIR_SIZE_GB}GB). Cleaning up..."
-                )
-
-                # Get all files with their modification times from this directory
-                files_with_time = []
+            # Collect all files from all temp directories with their metadata
+            all_files_with_time = []
+            for temp_dir in TEMP_DIRS:
+                path = Path(temp_dir)
+                if not path.is_dir():
+                    continue
+                    
                 for filename in os.listdir(path):
                     file_path = path / filename
                     if file_path.is_file():
                         try:
                             mtime = file_path.stat().st_mtime
                             size = file_path.stat().st_size
-                            files_with_time.append((file_path, mtime, size))
+                            all_files_with_time.append((file_path, mtime, size))
                         except Exception as e:
                             print(f"Error getting file info for {file_path}: {e}")
 
-                # Sort by modification time (oldest first)
-                files_with_time.sort(key=lambda x: x[1])
+            # Sort by modification time (oldest first) across all directories
+            all_files_with_time.sort(key=lambda x: x[1])
 
-                # Delete oldest files until we're under the limit
-                bytes_to_free = int((total_gb - MAX_DIR_SIZE_GB) * (1024**3))
-                bytes_freed = 0
+            # Delete oldest files until we're under the limit
+            bytes_to_free = int((total_gb - MAX_DIR_SIZE_GB) * (1024**3))
+            bytes_freed = 0
 
-                for file_path, mtime, size in files_with_time:
-                    if bytes_freed >= bytes_to_free:
-                        break
-                    try:
-                        file_path.unlink()
-                        bytes_freed += size
-                        print(
-                            f"Deleted file to reduce directory size: {file_path} "
-                            f"({size / (1024**2):.2f}MB)"
-                        )
-                    except Exception as e:
-                        print(f"Error deleting file {file_path}: {e}")
+            for file_path, mtime, size in all_files_with_time:
+                if bytes_freed >= bytes_to_free:
+                    break
+                try:
+                    file_path.unlink()
+                    bytes_freed += size
+                    print(
+                        f"Deleted file to reduce disk usage: {file_path} "
+                        f"({size / (1024**2):.2f}MB)"
+                    )
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}")
 
-                final_size_gb = (total_bytes - bytes_freed) / (1024**3)
-                print(
-                    f"Cleanup complete. Total disk usage reduced from "
-                    f"{total_gb:.2f}GB to {final_size_gb:.2f}GB"
-                )
-        except Exception as e:
-            print(f"Error checking/cleaning directory size for {temp_dir}: {e}")
+            final_size_gb = (total_bytes - bytes_freed) / (1024**3)
+            print(
+                f"Cleanup complete. Total disk usage reduced from "
+                f"{total_gb:.2f}GB to {final_size_gb:.2f}GB"
+            )
+    except Exception as e:
+        print(f"Error checking/cleaning total disk usage: {e}")
