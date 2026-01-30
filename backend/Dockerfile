@@ -1,5 +1,14 @@
 # Dockerfile
+# Use Python 3.11 (unaffected by CVE-2025-13836 which only affects 3.13.0-3.13.10, 3.14.0, 3.15.0-alpha)
 FROM python:3.11-slim
+
+# Update system packages to fix critical CVEs
+# CVE-2025-15467: OpenSSL RCE/DoS vulnerability
+# CVE-2025-13836: Python 3.13 HTTP client DoS (not applicable to Python 3.11, but update any python3.13-minimal deps)
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install system dependencies for ocrmypdf
 RUN apt-get update && apt-get install -y \
