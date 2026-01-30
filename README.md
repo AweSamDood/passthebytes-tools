@@ -85,7 +85,7 @@ This project includes automated code formatting tools. Run before committing:
 .\format-code.ps1
 ```
 
-**Note:** All formatting checks are **non-blocking** and informational only. You can commit and push regardless of warnings. See [FORMATTING.md](FORMATTING.md) for details.
+**Note:** All formatting checks are **non-blocking** and informational only.
 
 ## Production Deployment
 
