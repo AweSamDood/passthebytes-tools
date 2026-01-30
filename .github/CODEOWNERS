@@ -1,0 +1,17 @@
+# CODEOWNERS file for passthebytes-tools repository
+# This file defines code ownership for the entire repository.
+# All changes and pull requests require approval from the specified owner(s).
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# IMPORTANT: Replace @AweSamDood with your actual GitHub username
+
+# Own everything in the repository
+* @AweSamDood
+
+# Specific ownership for critical files (optional - these will also require your approval)
+/.github/workflows/* @AweSamDood
+/backend/* @AweSamDood
+/frontend/* @AweSamDood
+/deployment/* @AweSamDood
+/docker-compose*.yml @AweSamDood
