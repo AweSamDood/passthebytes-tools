@@ -3,8 +3,17 @@ name: Manual Deploy to Production
 on:
   workflow_dispatch:  # Manual deployment only
     inputs:
-      version:
-        description: 'Version to deploy (e.g., 1.0.0) or leave empty for latest'
+      version_selection:
+        description: 'Version selection method'
+        required: true
+        type: choice
+        options:
+          - latest
+          - previous
+          - specific
+        default: 'latest'
+      specific_version:
+        description: 'Specific version (only used if "specific" is selected above, e.g., 1.2.2)'
         required: false
         type: string
 
@@ -14,10 +23,40 @@ jobs:
     environment: production
 
     steps:
+      - name: Determine version to deploy
+        id: version
+        run: |
+          case "${{ github.event.inputs.version_selection }}" in
+            latest)
+              # Get the latest release tag
+              LATEST_TAG=$(git ls-remote --tags --refs --sort="v:refname" origin | tail -n1 | sed 's/.*\///')
+              VERSION=${LATEST_TAG#v}
+              echo "Using latest release: $VERSION"
+              ;;
+            previous)
+              # Get the second latest release tag
+              PREV_TAG=$(git ls-remote --tags --refs --sort="v:refname" origin | tail -n2 | head -n1 | sed 's/.*\///')
+              VERSION=${PREV_TAG#v}
+              echo "Using previous release: $VERSION"
+              ;;
+            specific)
+              VERSION="${{ github.event.inputs.specific_version }}"
+              if [ -z "$VERSION" ]; then
+                echo "Error: Specific version selected but no version provided"
+                exit 1
+              fi
+              echo "Using specific version: $VERSION"
+              ;;
+          esac
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Will deploy version: $VERSION"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
+          ref: ${{ steps.version.outputs.tag }}
 
       - name: Verify project directory exists
         run: |
@@ -66,12 +105,10 @@ jobs:
 
           echo "🚀 Starting deployment..."
 
-          # Set VERSION if provided, otherwise use what's in VERSION file
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            export VERSION="${{ github.event.inputs.version }}"
-            echo -n "$VERSION" > VERSION
-            echo "📦 Deploying version: $VERSION"
-          fi
+          # Use the version determined in the first step
+          export VERSION="${{ steps.version.outputs.version }}"
+          echo -n "$VERSION" > VERSION
+          echo "📦 Deploying version: $VERSION"
 
           # Make sure deploy script is executable
           chmod +x deployment/deploy.sh
