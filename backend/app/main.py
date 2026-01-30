@@ -26,7 +26,8 @@ from .services.cleanup import cleanup_temporary_files
 
 # Scheduler for cleanup tasks
 scheduler = BackgroundScheduler()
-scheduler.add_job(cleanup_temporary_files, "interval", hours=1)
+# Run cleanup every 30 minutes to ensure strict 2-hour file lifespan enforcement
+scheduler.add_job(cleanup_temporary_files, "interval", minutes=30)
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
