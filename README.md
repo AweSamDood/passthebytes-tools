@@ -89,7 +89,20 @@ This project includes automated code formatting tools. Run before committing:
 
 ## Production Deployment
 
-The `deployment/deploy.sh` script is designed for automated production deployment on a Linux server. For details, review the script and the GitHub Actions `deploy.yml` workflow.
+The `deployment/deploy.sh` script is designed for automated production deployment on a Linux server.
+
+### Manual Deployment via GitHub Actions
+
+To deploy a specific version to production:
+
+1. Go to **Actions** → **Manual Deploy to Production** → **Run workflow**
+2. Choose a version selection method:
+   - **Latest**: Deploys the most recent release tag
+   - **Previous**: Deploys the second most recent release tag
+   - **Specific**: Deploy a custom version (enter version number like `1.2.2`)
+3. Click **Run workflow**
+
+For more details, review the `deploy.yml` workflow file.
 
 ## Contributing
 
