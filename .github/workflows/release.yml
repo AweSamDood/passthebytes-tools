@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     types: [ closed ]
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       bump_type:
@@ -42,17 +42,17 @@ jobs:
       - name: Determine action
         id: determine
         run: |
-          # Check if this is a merged PR with version bump to master
+          # Check if this is a merged PR with version bump to main
           if [ "${{ github.event_name }}" = "pull_request" ] && \
              [ "${{ github.event.pull_request.merged }}" = "true" ] && \
-             [ "${{ github.event.pull_request.base.ref }}" = "master" ] && \
+             [ "${{ github.event.pull_request.base.ref }}" = "main" ] && \
              [ "${{ github.event.pull_request.head.ref }}" != "" ] && \
              echo "${{ github.event.pull_request.head.ref }}" | grep -q "^release/v"; then
             echo "action=release" >> $GITHUB_OUTPUT
             VERSION=$(cat VERSION | xargs)
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "bump_type=automated" >> $GITHUB_OUTPUT
-            echo "✅ Version bump PR merged to master - proceeding with release"
+            echo "✅ Version bump PR merged to main - proceeding with release"
             exit 0
           fi
 
@@ -66,7 +66,7 @@ jobs:
           # Check if this is a manual workflow dispatch
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "action=bump" >> $GITHUB_OUTPUT
-            echo "✅ Manual trigger - will create version bump PR to master"
+            echo "✅ Manual trigger - will create version bump PR to main"
             exit 0
           fi
 
@@ -75,7 +75,7 @@ jobs:
              [ "${{ github.ref_name }}" = "main" ] && \
              git log -1 --pretty=format:"%s" | grep -qE "^(feat|fix|perf|refactor)(\(.+\))?:"; then
             echo "action=bump" >> $GITHUB_OUTPUT
-            echo "✅ Conventional commit detected on main - will create version bump PR to master"
+            echo "✅ Conventional commit detected on main - will create version bump PR to main"
             exit 0
           fi
 
@@ -148,11 +148,11 @@ jobs:
           **This PR will be automatically merged if branch protection allows it.**
           EOF
           
-          # Create pull request to master
+          # Create pull request to main
           PR_URL=$(gh pr create \
             --title "chore: release v$VERSION" \
             --body-file /tmp/pr_body.md \
-            --base master \
+            --base main \
             --head "$BRANCH_NAME" \
             --label "release")
           
