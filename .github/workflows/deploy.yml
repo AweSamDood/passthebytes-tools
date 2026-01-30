@@ -13,7 +13,7 @@ on:
           - specific
         default: 'latest'
       specific_version:
-        description: 'Specific version (only used if "specific" is selected above, e.g., 1.2.2)'
+        description: 'Specific version (only used if "specific" is selected above, e.g., 1.2.2 WITHOUT the v prefix)'
         required: false
         type: string
 
@@ -26,28 +26,49 @@ jobs:
       - name: Determine version to deploy
         id: version
         run: |
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          
           case "${{ github.event.inputs.version_selection }}" in
             latest)
               # Get the latest release tag
-              LATEST_TAG=$(git ls-remote --tags --refs --sort="v:refname" origin | tail -n1 | sed 's/.*\///')
+              LATEST_TAG=$(git ls-remote --tags --refs --sort="v:refname" "$REPO_URL" | tail -n1 | sed 's/.*\///')
+              if [ -z "$LATEST_TAG" ]; then
+                echo "Error: No tags found in the repository. Please create a release first."
+                exit 1
+              fi
               VERSION=${LATEST_TAG#v}
-              echo "Using latest release: $VERSION"
+              echo "Using latest release: $VERSION (tag: $LATEST_TAG)"
               ;;
             previous)
               # Get the second latest release tag
-              PREV_TAG=$(git ls-remote --tags --refs --sort="v:refname" origin | tail -n2 | head -n1 | sed 's/.*\///')
+              TAG_COUNT=$(git ls-remote --tags --refs "$REPO_URL" | wc -l)
+              if [ "$TAG_COUNT" -lt 2 ]; then
+                echo "Error: Less than 2 tags found in the repository. Cannot select 'previous' version."
+                echo "Available tags: $TAG_COUNT"
+                exit 1
+              fi
+              PREV_TAG=$(git ls-remote --tags --refs --sort="v:refname" "$REPO_URL" | tail -n2 | head -n1 | sed 's/.*\///')
               VERSION=${PREV_TAG#v}
-              echo "Using previous release: $VERSION"
+              echo "Using previous release: $VERSION (tag: $PREV_TAG)"
               ;;
             specific)
               VERSION="${{ github.event.inputs.specific_version }}"
               if [ -z "$VERSION" ]; then
-                echo "Error: Specific version selected but no version provided"
+                echo "Error: Specific version selected but no version provided."
+                echo "Please enter a version number (e.g., 1.2.2) in the 'Specific version' field."
                 exit 1
               fi
+              # Remove 'v' prefix if user accidentally included it
+              VERSION=${VERSION#v}
               echo "Using specific version: $VERSION"
               ;;
           esac
+          
+          # Final validation
+          if [ -z "$VERSION" ]; then
+            echo "Error: Failed to determine version. VERSION is empty."
+            exit 1
+          fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
