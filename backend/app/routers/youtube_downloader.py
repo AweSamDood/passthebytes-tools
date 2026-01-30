@@ -17,6 +17,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from werkzeug.utils import secure_filename
 
+from app.services.cleanup import check_disk_space_available
 from app.utils import sanitize_filename
 
 # from urllib.parse import parse_qs, urlparse
@@ -82,6 +83,16 @@ class PlaylistDownloadModel(BaseModel):
 # def remove_file(path: str):
 #     if os.path.exists(path):
 #         os.unlink(path)
+
+
+def remove_file(path: str):
+    """Remove a file if it exists."""
+    if os.path.exists(path):
+        try:
+            os.unlink(path)
+            logging.info(f"Deleted file: {path}")
+        except Exception as e:
+            logging.error(f"Error deleting file {path}: {e}")
 
 
 def remove_dir(path: str):
@@ -193,6 +204,13 @@ async def download_file(
     request: Request,
     file_format: str, url_model: URLModel, background_tasks: BackgroundTasks
 ):
+    # Check disk space before accepting new download
+    if not check_disk_space_available():
+        raise HTTPException(
+            status_code=507,
+            detail="Service storage limit reached. Please try again later."
+        )
+    
     if file_format not in ["mp3", "mp4"]:
         raise HTTPException(status_code=400, detail="Invalid format specified.")
 
@@ -259,7 +277,8 @@ async def download_file(
     file_name_for_client = f"{sanitized_title}.{file_format}"
     media_type = "audio/mpeg" if file_format == "mp3" else "video/mp4"
 
-    # background_tasks.add_task(remove_file, downloaded_file_path)
+    # Schedule file deletion after serving to user
+    background_tasks.add_task(remove_file, downloaded_file_path)
 
     return FileResponse(
         path=downloaded_file_path, media_type=media_type, filename=file_name_for_client
@@ -543,6 +562,13 @@ async def download_playlist(
     request: Request,
     request_body: PlaylistDownloadModel, background_tasks: BackgroundTasks
 ):
+    # Check disk space before accepting new download
+    if not check_disk_space_available():
+        raise HTTPException(
+            status_code=507,
+            detail="Service storage limit reached. Please try again later."
+        )
+    
     job_id = str(uuid.uuid4())
     logging.info(f"Creating download job with job_id: {job_id}")
 
@@ -610,10 +636,34 @@ async def download_zip(
         logging.error(f"Zip file not found at path: {zip_path}")
         raise HTTPException(status_code=404, detail="Zip file not found.")
 
-    # progress_file_name = zip_name.replace(".zip", "_progress.json")
-    # progress_file_path = os.path.join("temp_downloads", progress_file_name)
+    # Extract job_id from zip filename to locate progress file
+    # Filename format: {sanitized_playlist_title}_{job_id}.zip
+    # SECURITY: Use sanitized_zip_name instead of original zip_name to prevent path traversal
+    try:
+        job_id = sanitized_zip_name.rsplit("_", 1)[1].replace(".zip", "")
 
-    # background_tasks.add_task(remove_file, zip_path)
-    # background_tasks.add_task(remove_file, progress_file_path)
+        # Validate that job_id is a proper UUID (consistent with other endpoints)
+        uuid.UUID(job_id)
+
+        base_path_abs = os.path.abspath(base_path)
+        progress_file_path = os.path.abspath(
+            os.path.normpath(os.path.join(base_path_abs, f"{job_id}_progress.json"))
+        )
+
+        # Validate the progress file path is within the allowed directory
+        # Use os.sep for more robust path validation across platforms
+        if not progress_file_path.startswith(base_path_abs + os.sep):
+            logging.warning(f"Progress file path traversal attempt blocked: {progress_file_path}")
+            progress_file_path = None
+    except (IndexError, ValueError):
+        # If we can't extract or validate job_id, just delete the zip file
+        progress_file_path = None
+        logging.warning(f"Could not extract valid job_id from zip filename: {sanitized_zip_name}")
+
+    # Schedule file deletions after serving to user
+    background_tasks.add_task(remove_file, zip_path)
+    if progress_file_path and os.path.exists(progress_file_path):
+        background_tasks.add_task(remove_file, progress_file_path)
+
     # Use sanitized filename in the response header
     return FileResponse(path=zip_path, media_type="application/zip", filename=sanitized_zip_name)

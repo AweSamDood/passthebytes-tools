@@ -3,7 +3,8 @@ import time
 from pathlib import Path
 
 TEMP_DIRS = ["temp_downloads", "uploads"]
-MAX_DIR_SIZE_GB = 100  # Maximum directory size in GB
+MAX_DIR_SIZE_GB = 25  # Maximum directory size in GB (allocated to service)
+DISK_USAGE_THRESHOLD = 0.90  # Reject new requests at 90% of MAX_DIR_SIZE_GB
 
 
 def get_directory_size(path: Path) -> int:
@@ -22,11 +23,51 @@ def get_directory_size(path: Path) -> int:
     return total_size
 
 
+def get_total_disk_usage() -> tuple[int, int]:
+    """
+    Get total disk usage across all temp directories.
+    
+    Returns:
+        tuple: (total_bytes_used, max_bytes_allowed)
+    """
+    total_bytes = 0
+    for temp_dir in TEMP_DIRS:
+        path = Path(temp_dir)
+        if path.is_dir():
+            total_bytes += get_directory_size(path)
+    
+    max_bytes = int(MAX_DIR_SIZE_GB * (1024**3))
+    return total_bytes, max_bytes
+
+
+def check_disk_space_available() -> bool:
+    """
+    Check if there's enough disk space to accept new requests.
+    
+    Returns:
+        bool: True if disk usage is below threshold, False otherwise
+    """
+    total_bytes, max_bytes = get_total_disk_usage()
+    threshold_bytes = int(max_bytes * DISK_USAGE_THRESHOLD)
+    
+    if total_bytes >= threshold_bytes:
+        usage_gb = total_bytes / (1024**3)
+        max_gb = max_bytes / (1024**3)
+        threshold_gb = threshold_bytes / (1024**3)
+        print(
+            f"Disk space threshold exceeded: {usage_gb:.2f}GB / {max_gb:.2f}GB "
+            f"(threshold: {threshold_gb:.2f}GB at {DISK_USAGE_THRESHOLD*100:.0f}%)"
+        )
+        return False
+    
+    return True
+
+
 def cleanup_temporary_files():
     """
-    Clean up temporary files based on age and directory size.
+    Clean up temporary files based on age and total disk usage.
     - Delete files older than 2 hours (7200 seconds)
-    - If directory exceeds 100GB, delete oldest files first
+    - If total disk usage exceeds MAX_DIR_SIZE_GB, delete oldest files first across all directories
     """
     for temp_dir in TEMP_DIRS:
         Path(temp_dir).mkdir(parents=True, exist_ok=True)
@@ -49,55 +90,59 @@ def cleanup_temporary_files():
                     print(f"Deleted old temporary file (>2h): {file_path}")
             except Exception as e:
                 print(f"Error deleting file {file_path}: {e}")
+    
+    # After first pass on all directories, check total disk usage
+    try:
+        total_bytes, max_bytes = get_total_disk_usage()
+        total_gb = total_bytes / (1024**3)
 
-        # Second pass: recalculate directory size after old file deletion
-        # and delete oldest files if size exceeds limit
-        try:
-            dir_size_bytes = get_directory_size(path)
-            dir_size_gb = dir_size_bytes / (1024**3)
+        if total_gb > MAX_DIR_SIZE_GB:
+            print(
+                f"Total disk usage ({total_gb:.2f}GB) "
+                f"exceeds limit ({MAX_DIR_SIZE_GB}GB). Cleaning up..."
+            )
 
-            if dir_size_gb > MAX_DIR_SIZE_GB:
-                print(
-                    f"Directory {temp_dir} size ({dir_size_gb:.2f}GB) "
-                    f"exceeds limit ({MAX_DIR_SIZE_GB}GB). Cleaning up..."
-                )
-
-                # Get all files with their modification times
-                files_with_time = []
+            # Collect all files from all temp directories with their metadata
+            all_files_with_time = []
+            for temp_dir in TEMP_DIRS:
+                path = Path(temp_dir)
+                if not path.is_dir():
+                    continue
+                    
                 for filename in os.listdir(path):
                     file_path = path / filename
                     if file_path.is_file():
                         try:
                             mtime = file_path.stat().st_mtime
                             size = file_path.stat().st_size
-                            files_with_time.append((file_path, mtime, size))
+                            all_files_with_time.append((file_path, mtime, size))
                         except Exception as e:
                             print(f"Error getting file info for {file_path}: {e}")
 
-                # Sort by modification time (oldest first)
-                files_with_time.sort(key=lambda x: x[1])
+            # Sort by modification time (oldest first) across all directories
+            all_files_with_time.sort(key=lambda x: x[1])
 
-                # Delete oldest files until we're under the limit
-                bytes_to_free = int((dir_size_gb - MAX_DIR_SIZE_GB) * (1024**3))
-                bytes_freed = 0
+            # Delete oldest files until we're under the limit
+            bytes_to_free = int((total_gb - MAX_DIR_SIZE_GB) * (1024**3))
+            bytes_freed = 0
 
-                for file_path, mtime, size in files_with_time:
-                    if bytes_freed >= bytes_to_free:
-                        break
-                    try:
-                        file_path.unlink()
-                        bytes_freed += size
-                        print(
-                            f"Deleted file to reduce directory size: {file_path} "
-                            f"({size / (1024**2):.2f}MB)"
-                        )
-                    except Exception as e:
-                        print(f"Error deleting file {file_path}: {e}")
+            for file_path, mtime, size in all_files_with_time:
+                if bytes_freed >= bytes_to_free:
+                    break
+                try:
+                    file_path.unlink()
+                    bytes_freed += size
+                    print(
+                        f"Deleted file to reduce disk usage: {file_path} "
+                        f"({size / (1024**2):.2f}MB)"
+                    )
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}")
 
-                final_size_gb = (dir_size_bytes - bytes_freed) / (1024**3)
-                print(
-                    f"Cleanup complete. Directory size reduced from "
-                    f"{dir_size_gb:.2f}GB to {final_size_gb:.2f}GB"
-                )
-        except Exception as e:
-            print(f"Error checking/cleaning directory size for {temp_dir}: {e}")
+            final_size_gb = (total_bytes - bytes_freed) / (1024**3)
+            print(
+                f"Cleanup complete. Total disk usage reduced from "
+                f"{total_gb:.2f}GB to {final_size_gb:.2f}GB"
+            )
+    except Exception as e:
+        print(f"Error checking/cleaning total disk usage: {e}")

@@ -15,6 +15,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.background import BackgroundTask
 
+from app.services.cleanup import check_disk_space_available
 from app.utils import sanitize_filename
 
 # Configure logging
@@ -153,6 +154,13 @@ async def convert_png_to_pdf(
     filename: str = Form("converted_document"),
 ):
     """Convert multiple PNG/JPG files to a single PDF"""
+
+    # Check disk space before accepting new conversion
+    if not check_disk_space_available():
+        raise HTTPException(
+            status_code=507,
+            detail="Service storage limit reached. Please try again later."
+        )
 
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
