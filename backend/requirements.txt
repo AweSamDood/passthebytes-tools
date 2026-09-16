@@ -4,7 +4,7 @@ python-multipart==0.0.22
 Pillow==12.2.0
 pypdf==6.10.0
 ocrmypdf==16.10.2
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 pillow-avif-plugin==1.4.2
 qrcode[pil]==7.4.2
 vobject==0.9.6.1
