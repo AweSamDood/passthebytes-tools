@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     qpdf \
     pdftk \
     wget \
+    unzip \
     ffmpeg \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -35,6 +36,17 @@ RUN wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download
     && rm -rf ghostscript-10.03.0* \
     && apt-get purge -y build-essential wget \
     && apt-get autoremove -y
+
+# Install Deno as the JavaScript runtime for yt-dlp.
+# yt-dlp needs a JS runtime to solve YouTube's player challenges (nsig/signature).
+# Without one it falls back to limited clients and media fetches fail with
+# HTTP 403 Forbidden. Deno is the only runtime yt-dlp enables by default.
+RUN curl -fsSL -o /tmp/deno.zip \
+    https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip \
+    && unzip -q /tmp/deno.zip -d /usr/local/bin \
+    && rm /tmp/deno.zip \
+    && chmod +x /usr/local/bin/deno \
+    && deno --version
 
 # Set working directory
 WORKDIR /app

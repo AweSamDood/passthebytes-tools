@@ -75,7 +75,7 @@ class PlaylistDownloadModel(BaseModel):
             raise ValueError("Cannot download more than 50 videos at a time")
         # Validate each video ID format (YouTube video IDs are 11 characters)
         for video_id in v:
-            if not re.match(r'^[a-zA-Z0-9_-]{11}$', video_id):
+            if not re.match(r"^[a-zA-Z0-9_-]{11}$", video_id):
                 raise ValueError(f"Invalid video ID format: {video_id}")
         return v
 
@@ -202,15 +202,17 @@ async def get_info(request: Request, url_model: URLModel):
 @limiter.limit("5/minute")
 async def download_file(
     request: Request,
-    file_format: str, url_model: URLModel, background_tasks: BackgroundTasks
+    file_format: str,
+    url_model: URLModel,
+    background_tasks: BackgroundTasks,
 ):
     # Check disk space before accepting new download
     if not check_disk_space_available():
         raise HTTPException(
             status_code=507,
-            detail="Service storage limit reached. Please try again later."
+            detail="Service storage limit reached. Please try again later.",
         )
-    
+
     if file_format not in ["mp3", "mp4"]:
         raise HTTPException(status_code=400, detail="Invalid format specified.")
 
@@ -238,9 +240,18 @@ async def download_file(
             }
         )
     elif file_format == "mp4":
+        # YouTube no longer serves progressive (muxed) mp4 streams, so this always
+        # merges a separate video and audio track. Cap at 1080p and prefer H.264:
+        # an unconstrained "bestvideo[ext=mp4]" now resolves to 4K AV1 (240 MB+ for
+        # a 3 minute clip), which eats the disk quota and won't play on many devices.
         ydl_opts.update(
             {
-                "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "format": (
+                    "bestvideo[vcodec^=avc1][height<=1080]+bestaudio[ext=m4a]/"
+                    "bestvideo[ext=mp4][height<=1080]+bestaudio/"
+                    "best[height<=1080]/best"
+                ),
+                "merge_output_format": "mp4",
             }
         )
 
@@ -249,13 +260,10 @@ async def download_file(
             info_dict = ydl.extract_info(url_model.url, download=True)
             title = info_dict.get("title", "video")
 
-            original_ext = info_dict.get("ext")
-            if file_format == "mp3":
-                downloaded_file_path = os.path.join(temp_dir, f"{unique_id}.mp3")
-            else:
-                downloaded_file_path = os.path.join(
-                    temp_dir, f"{unique_id}.{original_ext}"
-                )
+            # Both branches pin the container (mp3 postprocessor / merge_output_format),
+            # so the finished file is always {unique_id}.{file_format}. The scan below
+            # stays as a safety net in case yt-dlp skips the remux.
+            downloaded_file_path = os.path.join(temp_dir, f"{unique_id}.{file_format}")
 
             if not os.path.exists(downloaded_file_path):
                 found = False
@@ -560,15 +568,16 @@ def do_playlist_download(url: str, video_ids: list[str], job_id: str):
 @limiter.limit("3/hour")
 async def download_playlist(
     request: Request,
-    request_body: PlaylistDownloadModel, background_tasks: BackgroundTasks
+    request_body: PlaylistDownloadModel,
+    background_tasks: BackgroundTasks,
 ):
     # Check disk space before accepting new download
     if not check_disk_space_available():
         raise HTTPException(
             status_code=507,
-            detail="Service storage limit reached. Please try again later."
+            detail="Service storage limit reached. Please try again later.",
         )
-    
+
     job_id = str(uuid.uuid4())
     logging.info(f"Creating download job with job_id: {job_id}")
 
@@ -579,7 +588,12 @@ async def download_playlist(
     # Create the progress file immediately with an initializing state
     with open(progress_file, "w") as f:
         json.dump(
-            {"status": "initializing", "current": 0, "total": len(request_body.video_ids)}, f
+            {
+                "status": "initializing",
+                "current": 0,
+                "total": len(request_body.video_ids),
+            },
+            f,
         )
 
     background_tasks.add_task(
@@ -626,7 +640,9 @@ async def download_zip(
     # secure_filename() provides additional werkzeug-specific protections
     sanitized_zip_name = sanitize_filename(zip_name)
     sanitized_zip_name = secure_filename(sanitized_zip_name)
-    zip_path = os.path.abspath(os.path.normpath(os.path.join(base_path, sanitized_zip_name)))
+    zip_path = os.path.abspath(
+        os.path.normpath(os.path.join(base_path, sanitized_zip_name))
+    )
     if not zip_path.startswith(os.path.abspath(base_path)):
         logging.error(f"Access to the specified file is forbidden: {zip_path}")
         raise HTTPException(
@@ -653,12 +669,16 @@ async def download_zip(
         # Validate the progress file path is within the allowed directory
         # Use os.sep for more robust path validation across platforms
         if not progress_file_path.startswith(base_path_abs + os.sep):
-            logging.warning(f"Progress file path traversal attempt blocked: {progress_file_path}")
+            logging.warning(
+                f"Progress file path traversal attempt blocked: {progress_file_path}"
+            )
             progress_file_path = None
     except (IndexError, ValueError):
         # If we can't extract or validate job_id, just delete the zip file
         progress_file_path = None
-        logging.warning(f"Could not extract valid job_id from zip filename: {sanitized_zip_name}")
+        logging.warning(
+            f"Could not extract valid job_id from zip filename: {sanitized_zip_name}"
+        )
 
     # Schedule file deletions after serving to user
     background_tasks.add_task(remove_file, zip_path)
@@ -666,4 +686,6 @@ async def download_zip(
         background_tasks.add_task(remove_file, progress_file_path)
 
     # Use sanitized filename in the response header
-    return FileResponse(path=zip_path, media_type="application/zip", filename=sanitized_zip_name)
+    return FileResponse(
+        path=zip_path, media_type="application/zip", filename=sanitized_zip_name
+    )
