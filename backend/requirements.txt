@@ -12,7 +12,7 @@ yt-dlp==2026.8.19
 apscheduler
 pytest
 httpx
-werkzeug==3.1.5
+werkzeug==3.1.6
 slowapi==0.1.9
 email-validator
 
