@@ -366,7 +366,10 @@ async def export_audio(
         end = min(end, duration)
 
         codec_args, container_args, media_type = OUTPUT_FORMATS[output_format]
-        output_path = os.path.join(temp_dir, f"output.{output_format}")
+        # A fixed name, with no user-derived component anywhere in the path.
+        # The container is chosen by the explicit -f flag below, not by the
+        # extension, so ffmpeg does not need one here.
+        output_path = os.path.join(temp_dir, "output")
 
         cmd = ["ffmpeg", "-v", "error", "-y", "-i", input_path]
         cmd += _build_selection_args(start, end, mode, duration)
