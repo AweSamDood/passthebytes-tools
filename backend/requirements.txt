@@ -1,10 +1,10 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
-python-multipart==0.0.22
+python-multipart==0.0.31
 Pillow==12.2.0
-pypdf==6.10.0
+pypdf==6.13.3
 ocrmypdf==16.10.2
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 pillow-avif-plugin==1.4.2
 qrcode[pil]==7.4.2
 vobject==0.9.6.1
@@ -12,7 +12,7 @@ yt-dlp==2026.8.19
 apscheduler
 pytest
 httpx
-werkzeug==3.1.5
+werkzeug==3.1.6
 slowapi==0.1.9
 email-validator
 
