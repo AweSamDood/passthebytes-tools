@@ -15,6 +15,7 @@ import PasswordGenerator from './components/PasswordGenerator/PasswordGenerator'
 import QrCodeGenerator from './components/QrCodeGenerator/QrCodeGenerator';
 import Footer from './components/Footer';
 import YouTubeDownloader from './components/YouTubeDownloader/YouTubeDownloader';
+import AudioTrimmer from './components/AudioTrimmer/AudioTrimmer';
 
 function AppContent() {
     const { theme, isDark } = useTheme();
@@ -91,6 +92,7 @@ function AppContent() {
                                     <Route path="/password-generator" element={<PasswordGenerator />} />
                                     <Route path="/qr-code-generator" element={<QrCodeGenerator />} />
                                     <Route path="/youtube-downloader" element={<YouTubeDownloader />} />
+                                    <Route path="/audio-trimmer" element={<AudioTrimmer />} />
                                 </Routes>
                             </Box>
                         </Fade>

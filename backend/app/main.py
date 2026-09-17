@@ -16,6 +16,7 @@ from .middleware import (
 )
 from .routers import mocking_text  # Added
 from .routers import (
+    audio_trimmer,
     image_converter,
     password_generator,
     png_to_pdf,
@@ -101,6 +102,11 @@ app.include_router(
     youtube_downloader.router,
     prefix="/api/youtube",
     tags=["YouTube Downloader"],
+)
+app.include_router(
+    audio_trimmer.router,
+    prefix="/api/audio-trimmer",
+    tags=["Audio Trimmer"],
 )
 app.include_router(mocking_text.router, prefix="/api", tags=["Mocking Text"])  # Added
 
