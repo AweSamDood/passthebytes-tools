@@ -250,3 +250,63 @@ export const generateMockingText = async (text, start_with_lowercase) => {
         throw error;
     }
 };
+
+const filenameFromResponse = (response, fallback) => {
+    const contentDisposition = response.headers.get('content-disposition');
+    if (!contentDisposition) return fallback;
+
+    const encodedMatch = contentDisposition.match(/filename\*=utf-8''(.+)/i);
+    if (encodedMatch && encodedMatch.length > 1) {
+        return decodeURIComponent(encodedMatch[1]);
+    }
+
+    const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    if (plainMatch && plainMatch.length > 1) {
+        return plainMatch[1].replace(/"/g, '');
+    }
+
+    return fallback;
+};
+
+export const probeAudio = async (file, peaks) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (peaks) {
+        formData.append('peaks', String(peaks));
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/audio-trimmer/probe`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+};
+
+export const trimAudio = async (file, { start, end, mode, outputFormat, bitrate }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('start', String(start));
+    formData.append('end', String(end));
+    formData.append('mode', mode);
+    formData.append('output_format', outputFormat);
+    formData.append('bitrate', String(bitrate));
+
+    const response = await fetch(`${API_BASE_URL}/api/audio-trimmer/export`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    return { blob, filename: filenameFromResponse(response, `trimmed.${outputFormat}`) };
+};

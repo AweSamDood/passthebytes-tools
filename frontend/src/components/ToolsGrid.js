@@ -22,7 +22,8 @@ import {
     CompareArrows,
     QrCode,
     TextFields,
-    SentimentVerySatisfied
+    SentimentVerySatisfied,
+    ContentCut
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -59,6 +60,17 @@ const tools = [
         features: ['MP3 Audio', 'MP4 Video', 'MP3-Playlist'],
         category: 'Media',
         popularity: 5
+    },
+    {
+        id: 'audio-trimmer',
+        title: 'Audio Trimmer',
+        description: 'Trim audio with a waveform editor. Keep a selection or cut a section out of the middle, then export as WAV, MP3, M4A or an iPhone ringtone.',
+        icon: ContentCut,
+        path: '/audio-trimmer',
+        status: 'available',
+        features: ['Waveform Editor', 'Keep or Remove', 'WAV', 'MP3', 'M4R Ringtone'],
+        category: 'Media',
+        popularity: 4
     },
     {
         id: 'qr-code-generator',

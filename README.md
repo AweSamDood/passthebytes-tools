@@ -39,6 +39,7 @@ See [VERSIONING.md](VERSIONING.md) for detailed information about the versioning
 
 - **Converters:** PNG/JPG to PDF, Image Format Converter (PNG, JPEG, WEBP, ICO)
 - **Downloaders:** YouTube Video/Playlist Downloader (MP4, MP3)
+- **Audio:** Audio Trimmer (waveform editor, keep or remove a selection, WAV/MP3/M4A/M4R)
 - **Generators:** Password Generator, QR Code Generator, Meme Generator (coming soon)
 - **Text Tools:** Mocking Text Generator
 
